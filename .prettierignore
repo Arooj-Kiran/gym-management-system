@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+playwright-report
+test-results
+apps/server/src/db/migrations/meta
+package-lock.json
+# Requirement, rules and plan documents are written by hand; do not reformat them.
+docs

@@ -1,0 +1,55 @@
+/** Audit actions. Later stages append their own actions here. */
+export const AUDIT_ACTIONS = [
+  'LOGIN_SUCCEEDED',
+  'LOGIN_FAILED',
+  'ACCOUNT_LOCKED',
+  'LOGOUT',
+  'PASSWORD_CHANGED',
+  'STAFF_CREATED',
+  'STAFF_UPDATED',
+  'ROLE_CHANGED',
+  'STAFF_ACTIVATED',
+  'STAFF_DEACTIVATED',
+  'STAFF_PASSWORD_RESET',
+  'SETTINGS_CHANGED',
+] as const;
+export type AuditAction = (typeof AUDIT_ACTIONS)[number];
+
+export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
+  LOGIN_SUCCEEDED: 'Signed in',
+  LOGIN_FAILED: 'Sign-in failed',
+  ACCOUNT_LOCKED: 'Account locked',
+  LOGOUT: 'Signed out',
+  PASSWORD_CHANGED: 'Password changed',
+  STAFF_CREATED: 'Staff account created',
+  STAFF_UPDATED: 'Staff details updated',
+  ROLE_CHANGED: 'Role changed',
+  STAFF_ACTIVATED: 'Staff account activated',
+  STAFF_DEACTIVATED: 'Staff account deactivated',
+  STAFF_PASSWORD_RESET: 'Password reset by admin',
+  SETTINGS_CHANGED: 'Settings changed',
+};
+
+export const AUDIT_ENTITY_TYPES = ['USER', 'GYM_SETTINGS'] as const;
+export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
+
+export const ERROR_CODES = {
+  VALIDATION_FAILED: 'VALIDATION_FAILED',
+  INVALID_JSON: 'INVALID_JSON',
+  PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
+  UNAUTHENTICATED: 'UNAUTHENTICATED',
+  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
+  PASSWORD_CHANGE_REQUIRED: 'PASSWORD_CHANGE_REQUIRED',
+  CSRF_INVALID: 'CSRF_INVALID',
+  ORIGIN_NOT_ALLOWED: 'ORIGIN_NOT_ALLOWED',
+  FORBIDDEN: 'FORBIDDEN',
+  NOT_FOUND: 'NOT_FOUND',
+  CONFLICT: 'CONFLICT',
+  DUPLICATE_EMAIL: 'DUPLICATE_EMAIL',
+  LAST_ADMIN: 'LAST_ADMIN',
+  SELF_ACTION_NOT_ALLOWED: 'SELF_ACTION_NOT_ALLOWED',
+  RATE_LIMITED: 'RATE_LIMITED',
+  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
+  INTERNAL_ERROR: 'INTERNAL_ERROR',
+} as const;
+export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

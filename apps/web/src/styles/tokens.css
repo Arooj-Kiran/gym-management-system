@@ -1,0 +1,99 @@
+/*
+ * Design tokens — the only place colours are defined.
+ * Navy/charcoal navigation, white content surfaces, blue primary, green = success/granted,
+ * red = danger/denied. Every text/background pair below meets WCAG AA.
+ */
+:root {
+  color-scheme: light;
+
+  /* Neutral ramp */
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --surface-muted: #f1f4f8;
+  --surface-hover: #f6f8fb;
+  --border: #e2e7ee;
+  --border-strong: #cbd3de;
+  --text: #0f1b2d;
+  --text-secondary: #42526a;
+  --text-muted: #5f6f86;
+
+  /* Primary (blue) */
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-active: #1e40af;
+  --primary-subtle: #edf3ff;
+  --primary-text: #1d4ed8;
+
+  /* Semantic */
+  --success: #16a34a;
+  --success-subtle: #eafaf0;
+  --success-text: #15803d;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --danger-subtle: #fdf0f0;
+  --danger-text: #b91c1c;
+  --warning-subtle: #fff7e6;
+  --warning-text: #a14a06;
+  --info-subtle: #edf3ff;
+  --info-text: #1d4ed8;
+
+  /* Navigation chrome (stays dark in both themes) */
+  --sidebar: #0f1b2d;
+  --sidebar-raised: #182840;
+  --sidebar-border: #22344f;
+  --sidebar-fg: #d3dce8;
+  --sidebar-fg-muted: #93a3ba;
+  --sidebar-active: #1f3556;
+  --sidebar-accent: #4b8bff;
+
+  --focus-ring: #2563eb;
+  --overlay: rgb(9 15 26 / 0.55);
+
+  --shadow-xs: 0 1px 2px rgb(15 27 45 / 0.06);
+  --shadow-sm: 0 1px 3px rgb(15 27 45 / 0.08), 0 1px 2px rgb(15 27 45 / 0.04);
+  --shadow-lg: 0 12px 32px -8px rgb(15 27 45 / 0.22), 0 4px 8px -4px rgb(15 27 45 / 0.08);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --bg: #0a111d;
+  --surface: #111a2a;
+  --surface-muted: #162236;
+  --surface-hover: #172338;
+  --border: #22314a;
+  --border-strong: #31425f;
+  --text: #e7ecf3;
+  --text-secondary: #b0bdcf;
+  --text-muted: #8d9cb2;
+
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-active: #1e40af;
+  --primary-subtle: #15284a;
+  --primary-text: #8cb4ff;
+
+  --success: #22c55e;
+  --success-subtle: #0f2a1d;
+  --success-text: #6ee79a;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --danger-subtle: #321619;
+  --danger-text: #ff9b9b;
+  --warning-subtle: #2e2210;
+  --warning-text: #f7c46c;
+  --info-subtle: #15284a;
+  --info-text: #8cb4ff;
+
+  --sidebar: #070d18;
+  --sidebar-raised: #101b2c;
+  --sidebar-border: #1a2740;
+  --sidebar-active: #172a47;
+
+  --focus-ring: #6ea0ff;
+  --overlay: rgb(2 6 14 / 0.7);
+
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.35);
+  --shadow-lg: 0 16px 40px -8px rgb(0 0 0 / 0.6);
+}

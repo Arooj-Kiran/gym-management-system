@@ -1,0 +1,44 @@
+{
+  "name": "gym-management-system",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/shared",
+    "apps/server",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,green \"npm run dev -w @gms/server\" \"npm run dev -w @gms/web\"",
+    "dev:server": "npm run dev -w @gms/server",
+    "dev:web": "npm run dev -w @gms/web",
+    "build": "npm run build -w @gms/web",
+    "start": "npm run start -w @gms/server",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e": "npm run test:e2e -w @gms/web",
+    "test:all": "npm test && npm run test:e2e",
+    "db:setup": "npm run db:setup -w @gms/server",
+    "db:generate": "npm run db:generate -w @gms/server",
+    "db:migrate": "npm run db:migrate -w @gms/server",
+    "db:seed": "npm run db:seed -w @gms/server"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "concurrently": "^10.0.6",
+    "eslint": "^10.12.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.2"
+  }
+}
