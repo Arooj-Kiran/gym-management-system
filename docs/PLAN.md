@@ -1,6 +1,6 @@
 # Gym Management System — Implementation Plan (Stage 0)
 
-> Status: **APPROVED (2026-10-14).** Decisions D1–D8 approved; change requests C1–C2 incorporated. Stage 1 has not started.
+> Status: **APPROVED (2026-10-14).** Decisions D1–D8 approved; change requests C1–C2 incorporated. Stage 1 is done and awaiting approval (see Section 11).
 > Priority order (from docs/RULES.md): security and the biometric authorization rule → correctness → rules → this plan → requirements → speed.
 
 ## Contents
@@ -1164,7 +1164,7 @@ Access control (Stage 4) is deliberately placed **before** payments, because it 
 | Stage | Name | Status | Approved | Notes |
 |---|---|---|---|---|
 | 0 | Planning (this document) | **Done** | 2026-10-14 | D1–D8 approved; C1 (activation policy) and C2 (duplicate phone warning) incorporated |
-| 1 | Foundation | Not started (ready) | — | Prerequisites met: Node 24.19.0, PostgreSQL 17.11. Waiting for your go-ahead. |
+| 1 | Foundation | **Done — awaiting approval** | — | Exit gate passed 2026-10-14: lint 0 problems, typecheck 0 errors, `npm test` 229/229 (shared 69, server 138, web 23), `npm run test:e2e` 14/14; server + web start, `/health/ready` reports the database OK. Re-run before approval: same results; `gym_dev` row counts identical before and after the E2E run. |
 | 2 | Members and membership plans | Not started | — | |
 | 3 | Membership lifecycle and history | Not started | — | |
 | 4 | Attendance and biometric access control (SIMULATED) | Not started | — | |
@@ -1177,9 +1177,12 @@ Access control (Stage 4) is deliberately placed **before** payments, because it 
 
 | # | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Status | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
+| Status | — | — | — | — | — | — | — | — | — | — | — | — | Partial (1) | Shell (1) | — | — |
 
 (Each cell becomes **Pass** with the stage number once its automated tests pass.)
+
+- **13 — Partial (1):** the table-driven matrix test covers every Stage 1 route × all 5 roles (403 when not allowed) plus 401 when signed out; missing CSRF → 403; a deactivated user's session → 401; only the Admin can change roles, never their own; role-aware navigation component test. Grows with each stage's routes.
+- **14 — Shell (1):** Playwright at 360×800, 768×1024 and 1280×800 on login, dashboard, staff, settings, audit log and account: no horizontal overflow, sidebar ≥ 1024px and drawer below (opens, navigates, closes on Escape), zero axe WCAG 2.1 A/AA violations. Member, payment, kiosk and portal pages and the keyboard-only payment flow come in their stages (full pass: Stage 8).
 
 **Plan change log:**
 
@@ -1189,3 +1192,7 @@ Access control (Stage 4) is deliberately placed **before** payments, because it 
 | 2026-10-14 | D1–D8 approved. D5 set to `Asia/Karachi` / `PKR`. D7 confirmed (PostgreSQL 17.11). | User |
 | 2026-10-14 | C1: activation allowed with an outstanding balance; Admin-only setting "require full payment before activation" (default OFF, audit-logged) | User |
 | 2026-10-14 | C2: duplicate phone becomes an overridable warning (reason required, audit-logged); duplicate email stays blocked | User |
+| 2026-10-14 | Stage 1: small supporting dependencies added — `cors` (API), `concurrently` (root `npm run dev`), `@fontsource-variable/inter` (self-hosted Inter font, no external font CDN); TypeScript pinned to `~6.0`. No change to the approved stack. | Pending (listed in Stage 1 report) |
+| 2026-10-14 | Stage 1: Playwright Chromium browser installed for E2E tests | User |
+| 2026-10-14 | Stage 1: local databases — the user created `gym_dev` and `gym_test`; the least-privilege `gym_app` role (LOGIN, no superuser / createdb / createrole) was created as their owner with a generated password written only to `.env`; extensions `pgcrypto`, `citext`, `pg_trgm`, `btree_gist` installed | User |
+| 2026-10-14 | Stage 1: `docs/` excluded from Prettier so the hand-written requirements, rules and plan are never reformatted | — (tooling only) |

@@ -15,6 +15,11 @@ export const VIEWPORTS = [
 
 export async function signIn(page: Page, email: string, password = PASSWORD) {
   await page.goto('/login');
+  await submitSignInForm(page, email, password);
+}
+
+/** Fill in the sign-in form already on screen (keeps the URL, e.g. its `?next=`). */
+export async function submitSignInForm(page: Page, email: string, password = PASSWORD) {
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in' }).click();

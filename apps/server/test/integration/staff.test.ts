@@ -26,6 +26,9 @@ const post = (path: string, body: object = {}) =>
 const patch = (path: string, body: object) =>
   session.agent.patch(`/api/v1/staff${path}`).set('X-CSRF-Token', session.csrf).send(body);
 
+const login = ({ email, password }: Pick<TestUser, 'email' | 'password'>) =>
+  request(app).post('/api/v1/auth/login').send({ email, password });
+
 async function auditFor(entityId: string, action: string) {
   return db
     .select()
@@ -236,7 +239,7 @@ describe('activation and password reset', () => {
 
     await post(`/${trainer.id}/activate`, { reason: 'Re-hired' }).expect(200);
     expect(await auditFor(trainer.id, 'STAFF_ACTIVATED')).toHaveLength(1);
-    expect((await request(app).post('/api/v1/auth/login').send(trainer)).status).toBe(204);
+    expect((await login(trainer)).status).toBe(204);
   });
 
   it('refuses to deactivate yourself', async () => {
@@ -255,7 +258,7 @@ describe('activation and password reset', () => {
     expect(JSON.stringify(res.body)).not.toContain(TEMP_PASSWORD);
     expect((await trainerSession.agent.get('/api/v1/auth/me')).status).toBe(401);
 
-    expect((await request(app).post('/api/v1/auth/login').send(trainer)).status).toBe(401);
+    expect((await login(trainer)).status).toBe(401);
     const fresh = await signIn(app, { email: trainer.email, password: TEMP_PASSWORD });
     expect(fresh.me.user.mustChangePassword).toBe(true);
 

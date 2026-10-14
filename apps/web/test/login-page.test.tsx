@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { LoginPage } from '../src/features/auth/login-page';
-import { mockFetch, renderWithProviders } from './render';
+import { fakeMe, mockFetch, renderWithProviders } from './render';
 
 describe('LoginPage', () => {
   it('validates the form before calling the API', async () => {
@@ -49,6 +49,37 @@ describe('LoginPage', () => {
       email: 'sana.iqbal@example.test',
       password: 'Wrong-password-123',
     });
+  });
+
+  it('loads the new session and leaves the login page after signing in', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(
+        mockFetch((url) =>
+          url.endsWith('/auth/login')
+            ? { status: 204 }
+            : url.endsWith('/auth/me')
+              ? { status: 200, body: fakeMe('ADMIN') }
+              : { status: 404, body: { error: { code: 'NOT_FOUND', message: 'Not found' } } },
+        ),
+      );
+    // The signed-out result from the page's first /auth/me check is still fresh in the cache.
+    const { router } = renderWithProviders(<LoginPage />, {
+      path: '/login?next=%2Fstaff',
+      routes: [{ path: '/staff', element: <h1>Staff</h1> }],
+    });
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText('Email'), 'ayesha.malik@example.test');
+    await user.type(screen.getByLabelText('Password'), 'Correct-password-123');
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+    expect(await screen.findByRole('heading', { name: 'Staff' })).toBeVisible();
+    expect(router.state.location.pathname).toBe('/staff');
+    expect(fetchSpy.mock.calls.map(([url]) => String(url))).toEqual([
+      expect.stringContaining('/auth/login'),
+      expect.stringContaining('/auth/me'),
+    ]);
   });
 
   it('explains rate limiting separately', async () => {

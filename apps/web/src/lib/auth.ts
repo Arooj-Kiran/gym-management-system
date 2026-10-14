@@ -41,7 +41,8 @@ export function useLogin() {
     mutationFn: (input: LoginInput) => api.post('/auth/login', input),
     onSuccess: async () => {
       queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' });
-      await queryClient.fetchQuery({ queryKey: queryKeys.me, queryFn: fetchMe });
+      // staleTime 0: the cached "signed out" result must never satisfy this fetch.
+      await queryClient.fetchQuery({ queryKey: queryKeys.me, queryFn: fetchMe, staleTime: 0 });
     },
   });
 }
@@ -52,8 +53,10 @@ export function useLogout() {
     mutationFn: () => api.post('/auth/logout'),
     onSettled: () => {
       setCsrfToken(null);
-      queryClient.clear();
+      // Update the session query in place (never remove it): the route guard watches it and
+      // unmounts every signed-in screen before useSession() could run without a session.
       queryClient.setQueryData(queryKeys.me, null);
+      queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' });
     },
   });
 }

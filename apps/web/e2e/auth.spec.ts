@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { FORCED_CHANGE, PASSWORD, signIn, signInAs, USERS } from './helpers';
+import { FORCED_CHANGE, PASSWORD, signIn, signInAs, submitSignInForm, USERS } from './helpers';
 
 test('protected pages send signed-out visitors to login and back', async ({ page }) => {
   await page.goto('/settings');
   await expect(page).toHaveURL(/\/login\?next=%2Fsettings$/);
-  await signIn(page, USERS.ADMIN.email);
+  await submitSignInForm(page, USERS.ADMIN.email);
   await expect(page).toHaveURL(/\/settings$/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Settings');
 });
@@ -52,6 +52,8 @@ test('manager can view settings but not change them', async ({ page }) => {
 });
 
 test('sign out ends the session', async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
   await signInAs(page, 'TRAINER');
   await page.goto('/account');
   await page
@@ -60,6 +62,8 @@ test('sign out ends the session', async ({ page }) => {
     .click();
   await page.getByRole('menuitem', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/login/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign in');
+  expect(pageErrors).toEqual([]);
   await page.goto('/account');
   await expect(page).toHaveURL(/\/login/);
 });
