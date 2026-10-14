@@ -1,11 +1,11 @@
 # Gym Management System — Implementation Plan (Stage 0)
 
-> Status: **DRAFT — awaiting approval.** No code is written until this plan is approved.
+> Status: **APPROVED (2026-10-14).** Decisions D1–D8 approved; change requests C1–C2 incorporated. Stage 1 has not started.
 > Priority order (from docs/RULES.md): security and the biometric authorization rule → correctness → rules → this plan → requirements → speed.
 
 ## Contents
 
-0. Decisions that need your approval
+0. Approved decisions and change requests
 1. Technology stack evaluation and recommendation
 2. Architecture and folder structure
 3. Data models
@@ -20,20 +20,30 @@
 
 ---
 
-## 0. Decisions That Need Your Approval
+## 0. Approved Decisions and Change Requests
 
-| # | Decision | My recommendation | Why it needs approval |
-|---|----------|-------------------|-----------------------|
-| D1 | Tech stack | **TypeScript + React + Express + PostgreSQL (Drizzle ORM)** instead of plain JS + MongoDB | The requirements suggest MongoDB. Section 1 explains why I think there is a strong technical reason to change. |
-| D2 | Extra membership status `Pending` | Add `PENDING` (assigned but not yet activated, never eligible for entry) next to the 4 required statuses | Requirements list 4 statuses. Test scenarios 2 and 3 ("create and assign", then "activate") need a state before activation. |
-| D3 | Role-permission matrix | As in Section 5 | RULES.md §6 says the matrix in this plan is binding. |
-| D4 | Biometric enrollment roles | Admin and Manager only (not Receptionist) | Requirement: "restrict biometric administration to authorized personnel". |
-| D5 | Gym timezone and currency | Set through `GYM_TIMEZONE` and `CURRENCY_CODE`. Please tell me your values (for example `Asia/Karachi` / `PKR`). | Membership validity is checked by calendar date in the gym's timezone. |
-| D6 | Scope | One gym, one location (no multi-branch or multi-tenant) | Multi-branch would change every table. |
-| D7 | Database install | Install PostgreSQL 17 natively on Windows (Docker is not installed on this machine). | This is a required external dependency. |
-| D8 | Online payments | Not built until you pick a provider. Counter payments (cash, bank transfer, card on a POS terminal, other) are fully supported. | RULES.md §8: online payments must never be faked. |
+All decisions were approved on 2026-10-14. Any further change to them needs approval (RULES.md §9).
 
-**Environment checked on this machine (2026-10-14):** Node.js v24.19.0 and npm 11.17.0 are installed. Docker, PostgreSQL (`psql`) and MongoDB are **not** installed.
+| # | Decision | Status | Approved outcome |
+|---|----------|--------|------------------|
+| D1 | Tech stack | **Approved** | TypeScript + React + Express + PostgreSQL (Drizzle ORM) |
+| D2 | Extra membership status `PENDING` | **Approved** | `PENDING` = assigned but not yet activated. **Never eligible for entry.** |
+| D3 | Role-permission matrix | **Approved** | Section 5 as written is binding |
+| D4 | Biometric enrollment roles | **Approved** | Admin and Manager only |
+| D5 | Gym timezone and currency | **Approved** | `GYM_TIMEZONE=Asia/Karachi`, `CURRENCY_CODE=PKR` |
+| D6 | Scope | **Approved** | Single gym, single location |
+| D7 | Database | **Approved** | PostgreSQL 17 installed natively on Windows, `psql` on PATH (verified: `psql (PostgreSQL) 17.11`) |
+| D8 | Online payments | **Approved** | None for now. Counter payments only (cash, bank transfer, card on a POS terminal, other). |
+
+| # | Change request | Where it is applied |
+|---|----------------|---------------------|
+| C1 | **Membership activation policy.** A membership may be activated with an outstanding balance (its invoice shows as outstanding or partially paid). A gym setting, **"Require full payment before activation"**, defaults to **OFF** and can only be changed by the Admin. Every change is audit-logged. | §3.3, §3.11, §4.4, §8.2, §9 Stage 5 |
+| C2 | **Duplicate phone numbers are a warning, not a block.** Family members may share a phone. Authorized staff see the matching members and can confirm and override, with an audit log. **A duplicate email remains blocked.** | §3.2, §4.3, §8.2, §9 Stage 2 |
+
+**Environment checked on this machine (2026-10-14):**
+- Node.js v24.19.0 and npm 11.17.0 are installed.
+- PostgreSQL 17.11 is installed (`C:\Program Files\PostgreSQL\17\bin\psql.exe`).
+- Docker and MongoDB are not installed, and neither is needed.
 
 ---
 
@@ -69,7 +79,7 @@
 1. **PostgreSQL instead of MongoDB.** This is the strong technical reason. The most important rules in this project (never overlap memberships, never double-book, never delete history, never refund more than paid, write the check-in and the attempt atomically) can be enforced **by the database itself**, not only by application code. That gives defence in depth for the rules RULES.md ranks highest.
 2. **TypeScript instead of JavaScript.** The access decision, the permission matrix and the money calculations get compile-time checking. The same validation schemas are shared by client and server.
 
-**If you prefer to keep MongoDB:** the plan still works. It would use Mongoose, a single-node replica set for transactions, and application-level overlap checks inside transactions instead of exclusion constraints. Tell me and I will revise Sections 2–3 before Stage 1.
+**Decision (D1): approved on 2026-10-14.** MongoDB is not used.
 
 ### 1.4 Chosen libraries (major dependencies, for approval)
 
@@ -285,9 +295,17 @@ Indexes: unique `(token_hash)`, `(user_id)` where `revoked_at IS NULL`, `(expire
 | is_demo | bool |
 | created_by | FK users |
 
-Duplicate prevention: partial unique `(lower(email)) WHERE archived_at IS NULL AND email IS NOT NULL` and partial unique `(phone_e164) WHERE archived_at IS NULL`. The API also has a pre-check endpoint that returns the existing member, so the UI can say "this member already exists".
+Duplicate handling (C2):
 
-Indexes: unique `(member_code)`; GIN trigram on `first_name || ' ' || last_name`, `email` and `phone_e164` (search); `(registration_date)`; `(account_status)`.
+- **Email is a hard block.** Partial unique index `(lower(email)) WHERE archived_at IS NULL AND email IS NOT NULL`. A duplicate returns `409 DUPLICATE_EMAIL` with the existing member.
+- **Phone is a warning.** There is **no** unique constraint on `phone_e164`, because family members may share a number.
+  - On create, or on an update that changes the phone, if a non-archived member already has the same `phone_e164`, the API returns `409 DUPLICATE_PHONE_WARNING`. The response lists the matching members (code, name, and a same-name flag).
+  - Staff with `members:create` / `members:update` can resubmit with `confirmDuplicatePhone: true` and a required `duplicatePhoneReason` (for example "Shared family number").
+  - The save and an audit entry `MEMBER_DUPLICATE_PHONE_CONFIRMED` are written in one transaction. The entry holds the actor, the matched member IDs and the reason.
+  - Matches with the **same name and same phone** get a stronger warning ("this may be the same person"), but can still be overridden the same way.
+- A pre-check endpoint returns both results before submit, so the form can show "this member already exists" or "this phone is used by …" inline.
+
+Indexes: unique `(member_code)`; **non-unique** `(phone_e164) WHERE archived_at IS NULL` (duplicate lookup); GIN trigram on `first_name || ' ' || last_name`, `email` and `phone_e164` (search); `(registration_date)`; `(account_status)`.
 
 ### 3.3 Membership plans and memberships
 
@@ -330,6 +348,12 @@ Integrity:
 - Status transitions are allowed only as follows (enforced in the service, and tested):
   `PENDING → ACTIVE | CANCELLED`; `ACTIVE → SUSPENDED | CANCELLED | EXPIRED`; `SUSPENDED → ACTIVE | CANCELLED`. `CANCELLED` and `EXPIRED` are terminal (continue with a renewal, which creates a new row).
 - A renewal starts the day after the latest current `end_date`, or today if that date has already passed.
+- **Activation policy (C1).** Activation (`PENDING → ACTIVE`) checks the gym setting `require_full_payment_before_activation`:
+  - **OFF (default):** activation is allowed with an outstanding balance. The membership's invoice stays `PENDING`, `PARTIALLY_PAID` or `OVERDUE`, and the member page, membership card and portal show the outstanding amount.
+  - **ON:** activation is rejected with `409 PAYMENT_REQUIRED` (including the outstanding amount) unless the linked invoice is `PAID`.
+  - Renewals follow the same policy. With the setting ON, an unpaid renewal stays `PENDING` until it is paid in full and activated.
+  - Entry eligibility (§6.3) still depends **only** on membership status, dates and access restrictions. An outstanding balance never grants or blocks entry by itself.
+  - The policy check needs invoices, so it is built in **Stage 5**. In Stages 3–4 activation behaves exactly like the default (OFF).
 
 Indexes: `(member_id, start_date DESC)`, `(status, end_date)` (expiry jobs and reports), `(plan_id)`.
 
@@ -477,8 +501,12 @@ Integrity: partial unique `(device_id, template_ref) WHERE status = 'ACTIVE'`; a
 
 - **notifications**: `recipient_user_id`, `type` (`MEMBERSHIP_EXPIRING, MEMBERSHIP_EXPIRED, MEMBERSHIP_CANCELLED, MEMBERSHIP_SUSPENDED, PAYMENT_DUE, PAYMENT_OVERDUE, RENEWAL_SUCCESS, CLASS_REMINDER, APPOINTMENT_REMINDER, EQUIPMENT_MAINTENANCE_DUE, BIOMETRIC_RETENTION_DUE`), `title`, `body`, `entity_type`, `entity_id`, `read_at`, `dedupe_key` (unique, so daily jobs never duplicate a reminder). Index `(recipient_user_id, read_at, created_at DESC)`.
 - **notification_deliveries**: `notification_id`, `channel` (`EMAIL, SMS, WHATSAPP`), `status` (`NOT_CONFIGURED, SENT, FAILED`), `provider_message_id`, `error_code`, `attempted_at`.
-- **audit_logs**: **append-only.** `actor_user_id`, `actor_role`, `action` (for example `MEMBERSHIP_CANCELLED`, `PAYMENT_RECORDED`, `REFUND_ISSUED`, `ATTENDANCE_CORRECTED`, `ROLE_CHANGED`, `STAFF_DEACTIVATED`, `BIOMETRIC_ENROLLED`, `BIOMETRIC_DELETED`, `MANUAL_CHECK_IN`, `DEVICE_KEY_ROTATED`, `SETTINGS_CHANGED`, `LOGIN_FAILED`), `entity_type`, `entity_id`, `before jsonb`, `after jsonb` (secrets stripped), `reason`, `ip`, `user_agent`, `request_id`, `created_at`. Index `(entity_type, entity_id)`, `(actor_user_id, created_at)`, `(action, created_at)`.
-- **gym_settings** (one row): `gym_name`, `expiry_reminder_days` (default 7), `payment_due_reminder_days` (3), `invoice_due_days` (default 0 = due on start date), `biometric_retention_days` (30), `class_booking_cutoff_minutes` (60). Timezone and currency come from env.
+- **audit_logs**: **append-only.** `actor_user_id`, `actor_role`, `action` (for example `MEMBERSHIP_CANCELLED`, `PAYMENT_RECORDED`, `REFUND_ISSUED`, `ATTENDANCE_CORRECTED`, `ROLE_CHANGED`, `STAFF_DEACTIVATED`, `BIOMETRIC_ENROLLED`, `BIOMETRIC_DELETED`, `MANUAL_CHECK_IN`, `DEVICE_KEY_ROTATED`, `SETTINGS_CHANGED`, `MEMBER_DUPLICATE_PHONE_CONFIRMED`, `LOGIN_FAILED`), `entity_type`, `entity_id`, `before jsonb`, `after jsonb` (secrets stripped), `reason`, `ip`, `user_agent`, `request_id`, `created_at`. Index `(entity_type, entity_id)`, `(actor_user_id, created_at)`, `(action, created_at)`.
+- **gym_settings** (one row): `gym_name`, `expiry_reminder_days` (default 7), `payment_due_reminder_days` (3), `invoice_due_days` (default 0 = due on start date), `biometric_retention_days` (30), `class_booking_cutoff_minutes` (60).
+  - Also `require_full_payment_before_activation` (bool, **default false**, C1). The column is added in Stage 5 together with billing.
+  - Only `settings:manage` (Admin) can change any setting.
+  - Each change writes a `SETTINGS_CHANGED` audit entry with old and new values, the actor, and an optional reason.
+  - Timezone (`Asia/Karachi`) and currency (`PKR`) come from env.
 
 ### 3.12 Relationship summary
 
@@ -527,16 +555,16 @@ Base path: `/api/v1`. All routes need a valid session unless they are marked **p
 | POST | `/staff/:id/activate` · `/staff/:id/deactivate` | `staff:manage` |
 | POST | `/staff/:id/reset-password` | `staff:manage` (sets a temporary password, forces a change) |
 | GET | `/audit-logs` | `audit:read` |
-| GET · PATCH | `/settings` | `settings:read` · `settings:manage` |
+| GET · PATCH | `/settings` | `settings:read` · `settings:manage` (Admin only; every change audit-logged, including the C1 activation policy) |
 
 ### 4.3 Members (Stage 2)
 
 | Method | Path | Permission |
 |---|---|---|
 | GET | `/members` (`q, accountStatus, membershipStatus, paymentStatus, trainerId, registeredFrom, registeredTo, sort, order, page, pageSize`) | `members:read` (trainers get only assigned members, with a reduced field set) |
-| GET | `/members/check-duplicate?email=&phone=` | `members:create` |
-| POST | `/members` | `members:create` (409 with the existing member on a duplicate) |
-| GET · PATCH | `/members/:id` | `members:read` · `members:update` |
+| GET | `/members/check-duplicate?email=&phone=&excludeId=` | `members:create` or `members:update` → `{ emailConflict, phoneMatches[] }` |
+| POST | `/members` | `members:create`. `409 DUPLICATE_EMAIL` (hard block). `409 DUPLICATE_PHONE_WARNING` unless the body includes `confirmDuplicatePhone: true` + `duplicatePhoneReason` (audit-logged, C2). |
+| GET · PATCH | `/members/:id` | `members:read` · `members:update` (same email and phone rules when the phone changes) |
 | POST | `/members/:id/archive` · `/restore` | `members:archive` |
 | POST · GET | `/members/:id/photo` | `members:update` · `members:read` |
 | POST | `/members/:id/portal-account` | `members:update` (creates a MEMBER login with a temporary password) |
@@ -556,8 +584,8 @@ Base path: `/api/v1`. All routes need a valid session unless they are marked **p
 | GET | `/memberships` (`status, planId, expiringWithinDays, from, to, page…`) | `memberships:read` |
 | POST | `/memberships` (`memberId, planId, startDate`) → `PENDING` + invoice | `memberships:assign` |
 | GET | `/memberships/:id` · `/memberships/:id/events` | `memberships:read` |
-| POST | `/memberships/:id/activate` | `memberships:activate` |
-| POST | `/memberships/:id/renew` (`planId?`) | `memberships:renew` |
+| POST | `/memberships/:id/activate` | `memberships:activate`. From Stage 5: `409 PAYMENT_REQUIRED` when "require full payment before activation" is ON and the invoice is not PAID (C1). |
+| POST | `/memberships/:id/renew` (`planId?`) | `memberships:renew` (same activation policy) |
 | POST | `/memberships/:id/extend` (`days, reason`) | `memberships:change-status` |
 | POST | `/memberships/:id/suspend` (`reason`) | `memberships:change-status` |
 | POST | `/memberships/:id/reactivate` (`extendBySuspendedDays, reason`) | `memberships:change-status` |
@@ -761,6 +789,8 @@ Notes:
 - **Trainer-safe member fields:** name, photo, member code, membership status and dates, trainer notes, workouts and progress. **Not** included: email, phone, emergency contact, payments, biometric status.
 - **Test scenario 11** ("unauthorized staff cannot change membership status"): Receptionist and Trainer get `403` on cancel, suspend, reactivate and extend. Trainer also gets `403` on activate and renew. Members get `403` on every membership mutation.
 - Managers cannot create staff accounts or change roles. Only the Admin can, which prevents privilege escalation. Changing this is a matrix change (RULES.md §9).
+- **C1:** the "require full payment before activation" setting falls under `settings:manage`, so it is **Admin only**. Managers can read it (`settings:read`) but not change it.
+- **C2:** confirming a duplicate-phone warning needs no new permission. Any role that may create or update the member (Admin, Manager, Receptionist) can confirm it, with a required reason and an audit entry. The approved matrix is unchanged.
 
 ---
 
@@ -901,8 +931,8 @@ All variables are validated at startup by `config/env.ts`, which uses Zod. Missi
 | `SESSION_IDLE_MINUTES` | `60` | no | Idle timeout |
 | `LOGIN_RATE_LIMIT_MAX` / `LOGIN_RATE_LIMIT_WINDOW_MINUTES` | `5` / `15` | no | Login throttling |
 | `ACCOUNT_LOCKOUT_THRESHOLD` / `ACCOUNT_LOCKOUT_MINUTES` | `10` / `15` | no | Per-account lockout |
-| `GYM_TIMEZONE` | `UTC` (set yours, e.g. `Asia/Karachi`) | yes | Calendar-day validity checks (D5) |
-| `CURRENCY_CODE` | `USD` (set yours) | yes | ISO 4217 currency code |
+| `GYM_TIMEZONE` | `Asia/Karachi` | yes | Calendar-day validity checks (D5) |
+| `CURRENCY_CODE` | `PKR` | yes | ISO 4217 currency code (D5). Stored in minor units (paisa). The UI shows whole rupees by default. |
 | `ACCESS_DUPLICATE_SCAN_WINDOW_SECONDS` | `60` | no | Duplicate-scan window |
 | `ACCESS_DB_TIMEOUT_MS` | `2000` | no | Statement timeout for access decisions (fail closed) |
 | `ACCESS_SCAN_RATE_LIMIT_PER_MINUTE` | `60` | no | Per-device scan throttle |
@@ -939,7 +969,7 @@ No secrets ever go into `VITE_*` variables, because they are bundled into public
 
 | Service | Needed for | Status |
 |---|---|---|
-| **PostgreSQL 17** (native Windows installer, or a hosted Postgres such as Neon / Supabase / RDS) | Everything. Two databases: `gym_dev` and `gym_test`. | **Required.** Not installed on this machine yet (D7). |
+| **PostgreSQL 17** (native Windows installer, or a hosted Postgres such as Neon / Supabase / RDS) | Everything. Two databases: `gym_dev` and `gym_test`. | **Required.** Installed: PostgreSQL 17.11, native Windows (D7). The databases and app role are created in Stage 1. |
 | SMTP email provider (any: Gmail Workspace SMTP, SendGrid, Mailgun, Amazon SES…) | Email notifications, member invites | Optional. REQUIRES CONFIGURATION. |
 | Twilio (SMS + WhatsApp), or Meta WhatsApp Cloud API | SMS / WhatsApp reminders | Optional. REQUIRES CONFIGURATION. WhatsApp also needs Meta business verification and approved templates. |
 | Online payment provider (Stripe, or a provider available in your country) | Online payments | Not planned until chosen (D8) |
@@ -968,9 +998,9 @@ Commands (wired in Stage 1): `npm test` runs everything except E2E; `npm run tes
 
 | # | Scenario | Automated tests | Type | Stage |
 |---|---|---|---|---|
-| 1 | Register a new member | Create a member → 201 with a `GM-` code. Duplicate email or phone → 409 with the existing member. Validation errors → 400 with field details. Archived member's phone can be re-used. Search, sort, filter and pagination return the expected rows. E2E: the receptionist registers a member through the form. | API, E2E | 2 |
+| 1 | Register a new member | Create a member → 201 with a `GM-` code. **Duplicate email → 409 `DUPLICATE_EMAIL`; override not possible (C2).** **Duplicate phone → 409 `DUPLICATE_PHONE_WARNING` listing the matches. Resubmitting with confirmation + reason → 201 and one `MEMBER_DUPLICATE_PHONE_CONFIRMED` audit row. Confirmation without a reason → 400. A same-name + same-phone match is flagged. A phone change on update gets the same warning. A Trainer or Member cannot confirm (403).** Validation errors → 400 with field details. An archived member's email can be re-used. Search, sort, filter and pagination return the expected rows. E2E: the receptionist registers a member through the form. | API, E2E | 2 |
 | 2 | Create and assign a membership | Admin creates each plan type. Duration and price are validated. Assigning creates a `PENDING` membership with server-computed dates and price snapshot, a `CREATED` event and an invoice. An overlapping assignment is rejected by the exclusion constraint. An archived plan cannot be assigned. | API, E2E | 3 (invoice part: 5) |
-| 3 | Activate and renew a membership | `PENDING → ACTIVE` writes an `ACTIVATED` event. Renew creates a new row starting the day after the current end date, links `renewed_from_id`, writes a `RENEWED` event, and keeps old payments and attendance. Extend, suspend and reactivate follow the transition table. Invalid transitions return 409. | API | 3 |
+| 3 | Activate and renew a membership | `PENDING → ACTIVE` writes an `ACTIVATED` event. **Activation policy (C1, Stage 5): setting OFF → activation with an unpaid or partially paid invoice succeeds and the outstanding balance is reported. Setting ON → `409 PAYMENT_REQUIRED` until the invoice is PAID, then it succeeds. The same applies to renewals. Only the Admin can change the setting (Manager, Receptionist, Trainer, Member → 403). Each change writes a `SETTINGS_CHANGED` audit row with old and new values. An outstanding balance never changes the access decision.** Renew creates a new row starting the day after the current end date, links `renewed_from_id`, writes a `RENEWED` event, and keeps old payments and attendance. Extend, suspend and reactivate follow the transition table. Invalid transitions return 409. | API | 3 |
 | 4 | Allow check-in for an eligible member | `SIM-0001` with an ACTIVE membership covering today → GRANTED, with one attendance row and one GRANTED attempt (source SIMULATED). The first and last valid days are both granted (inclusive, in gym TZ). Manual check-in → GRANTED + audit log. | API, unit, E2E | 4 |
 | 5 | Cancel a membership and **immediately** deny the next check-in | Scan → GRANTED. Cancel through the API. The **next** scan with the same ref → DENIED `MEMBERSHIP_CANCELLED`, even inside the duplicate window. A concurrent cancel and scan never leave a GRANTED attempt recorded after the cancel commit. History is still intact afterwards. | API, E2E | 4 |
 | 6 | Deny an expired membership | Status `EXPIRED` → DENIED. Also: status still `ACTIVE` but `end_date` yesterday (nightly job not run yet) → DENIED `MEMBERSHIP_EXPIRED`. The expiry job flips the status and writes an `EXPIRED` event. | unit, API | 3–4 |
@@ -1051,7 +1081,7 @@ Access control (Stage 4) is deliberately placed **before** payments, because it 
 
 ### Stage 2: Members and membership plans
 - Schema: `members` (sequence codes, partial unique email/phone, trigram search), `membership_plans`.
-- Member CRUD, duplicate pre-check, archive and restore, photo upload with magic-byte validation and an authorized photo route, search, sort, filter and pagination, member detail page (tabs fill in as later stages add data), portal account creation (temporary password), access block and unblock.
+- Member CRUD, duplicate pre-check (email = hard block; phone = warning with a confirm-and-override dialog that requires a reason and is audit-logged, C2), archive and restore, photo upload with magic-byte validation and an authorized photo route, search, sort, filter and pagination, member detail page (tabs fill in as later stages add data), portal account creation (temporary password), access block and unblock.
 - Plans CRUD (all 5 types, benefits, access hours), archive.
 - Member portal shell + `/me/profile`. Demo seed (fictional, `is_demo`) + DEMO DATA banner.
 - Dashboard cards: total members, today's registrations, recent member activity.
@@ -1077,9 +1107,13 @@ Access control (Stage 4) is deliberately placed **before** payments, because it 
 ### Stage 5: Payments and billing
 - Schema: `invoices`, `payments`, `refunds`.
 - Invoice auto-created on membership assignment and renewal; manual invoices; record full or partial counter payments; refunds; void; server-side status and balance calculation; overdue job; printable receipt page; payment history on the member page and portal; payment and invoice lists with search and date filters.
+- Activation policy (C1):
+  - Add the `require_full_payment_before_activation` setting (default OFF; Admin-only toggle on the Settings screen, with a confirmation dialog and audit log).
+  - Enforce it in activate and renew.
+  - Show the outstanding balance on membership cards, the member page and the portal.
 - Online payment: not built; documented as REQUIRES CONFIGURATION (D8).
 - Dashboard: monthly revenue, pending and overdue payments, "record payment" quick action.
-- Tests: scenario 10, scenario 2 (invoice part), scenario 12 (payments part), concurrency on refunds and overpayment, matrix rows for billing.
+- Tests: scenario 10, scenario 2 (invoice part), scenario 3 (activation-policy part), scenario 12 (payments part), concurrency on refunds and overpayment, matrix rows for billing.
 
 ### Stage 6: Staff, trainers, schedules, classes and appointments
 - Schema: `trainer_profiles`, `trainer_assignments`, `trainer_availability`, `trainer_time_off`, `staff_shifts`, `fitness_classes`, `class_sessions`, `class_bookings`, `appointments` (all with their exclusion constraints).
@@ -1116,7 +1150,8 @@ Access control (Stage 4) is deliberately placed **before** payments, because it 
 | Access terminals open the door on a match by default | The backend would be **bypassed**, breaking the core rule | Configure identify-only / no relay; the relay is driven by the agent only after a GRANTED decision. This is on the hardware setup checklist and must be tested on site. |
 | Fail-closed means no entry during an internet or server outage | Business disruption | Documented offline procedure (staff manual entry outside the system, reconciled later); health monitoring; the local network can host the server |
 | Timezone mistakes around midnight | Wrong grant or deny on the first or last day | All validity checks use calendar dates in `GYM_TIMEZONE`, with boundary unit tests |
-| PostgreSQL not installed; no Docker | Stage 1 blocked | Install PostgreSQL 17 (Windows installer) before Stage 1 (D7) |
+| Shared family phone numbers hide real duplicates | Duplicate member records | Phone is a warning with a required reason and an audit log. A same-name + same-phone match gets a stronger warning. Email stays unique (C2). |
+| Activation with an unpaid balance | Revenue leakage | The outstanding balance is visible everywhere, and the overdue job and reminders run. The Admin can switch on "require full payment before activation" (C1). |
 | Native modules on Windows (`argon2`) | Install failures | Prebuilt binaries exist for Node 24 on Windows; fallback is `bcrypt` (needs approval) |
 | Biometric data law | Legal exposure | Minimal data, consent, retention and deletion procedures; recommend legal review |
 | WhatsApp / SMS approvals | Delays | Channels are optional; in-app notifications always work |
@@ -1128,8 +1163,8 @@ Access control (Stage 4) is deliberately placed **before** payments, because it 
 
 | Stage | Name | Status | Approved | Notes |
 |---|---|---|---|---|
-| 0 | Planning (this document) | **Done, awaiting approval** | — | Decisions D1–D8 pending |
-| 1 | Foundation | Not started | — | Requires PostgreSQL installed (D7) |
+| 0 | Planning (this document) | **Done** | 2026-10-14 | D1–D8 approved; C1 (activation policy) and C2 (duplicate phone warning) incorporated |
+| 1 | Foundation | Not started (ready) | — | Prerequisites met: Node 24.19.0, PostgreSQL 17.11. Waiting for your go-ahead. |
 | 2 | Members and membership plans | Not started | — | |
 | 3 | Membership lifecycle and history | Not started | — | |
 | 4 | Attendance and biometric access control (SIMULATED) | Not started | — | |
@@ -1145,3 +1180,12 @@ Access control (Stage 4) is deliberately placed **before** payments, because it 
 | Status | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
 
 (Each cell becomes **Pass** with the stage number once its automated tests pass.)
+
+**Plan change log:**
+
+| Date | Change | Approved by |
+|---|---|---|
+| 2026-10-14 | Initial plan (Stage 0) | — |
+| 2026-10-14 | D1–D8 approved. D5 set to `Asia/Karachi` / `PKR`. D7 confirmed (PostgreSQL 17.11). | User |
+| 2026-10-14 | C1: activation allowed with an outstanding balance; Admin-only setting "require full payment before activation" (default OFF, audit-logged) | User |
+| 2026-10-14 | C2: duplicate phone becomes an overridable warning (reason required, audit-logged); duplicate email stays blocked | User |
