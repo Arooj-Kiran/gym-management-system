@@ -1,13 +1,24 @@
-import type { MyProfileDto, updateMyProfileSchema } from '@gms/shared';
-import { and, eq, isNull } from 'drizzle-orm';
+import {
+  daysBetween,
+  effectiveMembershipStatus,
+  isCurrentStatus,
+  type MyMembershipDto,
+  type MyMembershipOverview,
+  type MyProfileDto,
+  type updateMyProfileSchema,
+} from '@gms/shared';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { db, type DbExecutor } from '../../db/client';
-import { members } from '../../db/schema';
+import { members, memberships } from '../../db/schema';
 import { diffFields, recordAudit } from '../../lib/audit';
+import { gymToday } from '../../lib/dates';
 import { notFound } from '../../lib/errors';
 import type { RequestContext } from '../../lib/request-context';
 import type { UploadedImage } from '../../middleware/upload';
 import { memberPhotoUrl, readPhoto, replacePhoto } from '../members/members.service';
+import { currentMembershipSql } from '../memberships/current-membership';
+import { getSettings } from '../settings/settings.service';
 
 type UpdateMyProfile = z.output<typeof updateMyProfileSchema>;
 type MemberRow = typeof members.$inferSelect;
@@ -86,4 +97,76 @@ export async function replaceMyPhoto(userId: string, image: UploadedImage, ctx: 
 export async function readMyPhoto(userId: string) {
   const row = await requireOwnRow(db, userId);
   return readPhoto(row.id);
+}
+
+// --- Membership (read-only) -----------------------------------------------------------------
+
+type MembershipRow = typeof memberships.$inferSelect;
+
+/** Only what a member needs: no reasons, staff names or internal links. */
+function toMyMembership(row: MembershipRow, today: string): MyMembershipDto {
+  return {
+    id: row.id,
+    planName: row.planNameSnapshot,
+    priceMinor: row.priceMinorSnapshot,
+    status: row.status,
+    effectiveStatus: effectiveMembershipStatus(row, today),
+    startDate: row.startDate,
+    endDate: row.endDate,
+    accessDays: row.accessDaysSnapshot,
+    accessStartTime: row.accessStartTimeSnapshot?.slice(0, 5) ?? null,
+    accessEndTime: row.accessEndTimeSnapshot?.slice(0, 5) ?? null,
+  };
+}
+
+async function ownMemberships(memberId: string) {
+  return db
+    .select()
+    .from(memberships)
+    .where(eq(memberships.memberId, memberId))
+    .orderBy(desc(memberships.startDate), desc(memberships.createdAt));
+}
+
+/** The member's own membership history, newest period first. */
+export async function getMyMemberships(userId: string): Promise<MyMembershipDto[]> {
+  const member = await requireOwnRow(db, userId);
+  const today = gymToday();
+  return (await ownMemberships(member.id)).map((row) => toMyMembership(row, today));
+}
+
+/** The membership the member is on now (same rule as staff screens), and any renewal after it. */
+export async function getMyMembership(userId: string): Promise<MyMembershipOverview> {
+  const member = await requireOwnRow(db, userId);
+  const today = gymToday();
+  const [[pick], rows, settings] = await Promise.all([
+    db
+      .select({ id: currentMembershipSql<string>(members.id, today, sql`cm.id`) })
+      .from(members)
+      .where(eq(members.id, member.id)),
+    ownMemberships(member.id),
+    getSettings(),
+  ]);
+  const current = rows.find((row) => row.id === pick?.id) ?? null;
+  if (!current) return { current: null, next: null, daysLeft: null, expiringSoon: false };
+
+  const next =
+    rows
+      .filter(
+        (row) =>
+          row.id !== current.id && isCurrentStatus(row.status) && row.startDate > current.endDate,
+      )
+      .sort((a, b) => a.startDate.localeCompare(b.startDate))[0] ?? null;
+  const status = effectiveMembershipStatus(current, today);
+  const running = (status === 'ACTIVE' || status === 'SUSPENDED') && current.startDate <= today;
+  const daysLeft = running ? daysBetween(today, current.endDate) + 1 : null;
+  return {
+    current: toMyMembership(current, today),
+    next: next ? toMyMembership(next, today) : null,
+    daysLeft,
+    expiringSoon:
+      status === 'ACTIVE' &&
+      daysLeft !== null &&
+      daysLeft - 1 <= settings.expiryReminderDays &&
+      next === null,
+  };
 }

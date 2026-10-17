@@ -294,12 +294,8 @@
           "name": "user_sessions_user_id_users_id_fk",
           "tableFrom": "user_sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -382,12 +378,8 @@
           "name": "staff_profiles_user_id_users_id_fk",
           "tableFrom": "staff_profiles",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -559,12 +551,8 @@
           "name": "audit_logs_actor_user_id_users_id_fk",
           "tableFrom": "audit_logs",
           "tableTo": "users",
-          "columnsFrom": [
-            "actor_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["actor_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -978,12 +966,8 @@
           "name": "members_user_id_users_id_fk",
           "tableFrom": "members",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -991,12 +975,8 @@
           "name": "members_access_blocked_by_users_id_fk",
           "tableFrom": "members",
           "tableTo": "users",
-          "columnsFrom": [
-            "access_blocked_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["access_blocked_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1004,12 +984,8 @@
           "name": "members_archived_by_users_id_fk",
           "tableFrom": "members",
           "tableTo": "users",
-          "columnsFrom": [
-            "archived_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["archived_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1017,12 +993,8 @@
           "name": "members_created_by_users_id_fk",
           "tableFrom": "members",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1242,40 +1214,22 @@
     "public.user_role": {
       "name": "user_role",
       "schema": "public",
-      "values": [
-        "ADMIN",
-        "MANAGER",
-        "RECEPTIONIST",
-        "TRAINER",
-        "MEMBER"
-      ]
+      "values": ["ADMIN", "MANAGER", "RECEPTIONIST", "TRAINER", "MEMBER"]
     },
     "public.member_account_status": {
       "name": "member_account_status",
       "schema": "public",
-      "values": [
-        "ACTIVE",
-        "INACTIVE"
-      ]
+      "values": ["ACTIVE", "INACTIVE"]
     },
     "public.duration_unit": {
       "name": "duration_unit",
       "schema": "public",
-      "values": [
-        "DAY",
-        "MONTH"
-      ]
+      "values": ["DAY", "MONTH"]
     },
     "public.plan_type": {
       "name": "plan_type",
       "schema": "public",
-      "values": [
-        "MONTHLY",
-        "QUARTERLY",
-        "SIX_MONTH",
-        "ANNUAL",
-        "CUSTOM"
-      ]
+      "values": ["MONTHLY", "QUARTERLY", "SIX_MONTH", "ANNUAL", "CUSTOM"]
     }
   },
   "schemas": {},

@@ -1,10 +1,18 @@
+import { addDays } from '@gms/shared';
 import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { closeDb, db } from '../../src/db/client';
 import { auditLogs, members } from '../../src/db/schema';
 import { signIn, testApp, type Session } from '../setup/auth';
 import { resetTables } from '../setup/db';
-import { createMember, createUser, type TestUser } from '../setup/factories';
+import { gymToday } from '../../src/lib/dates';
+import {
+  createMember,
+  createMembership,
+  createPlan,
+  createUser,
+  type TestUser,
+} from '../setup/factories';
 
 const app = testApp();
 
@@ -161,5 +169,70 @@ describe('/me is for members only', () => {
   it('returns 404 when the login has no current member profile', async () => {
     const orphan = await createUser({ role: 'MEMBER' });
     expect((await me(await signIn(app, orphan)).get('/profile')).status).toBe(404);
+  });
+});
+
+describe('/me/membership (scenario 12, memberships part)', () => {
+  it("shows only the signed-in member's membership, with days left and the renewal after it", async () => {
+    const today = gymToday();
+    const plan = await createPlan({ name: 'Monthly Standard', priceMinor: 450_000 });
+    const current = await createMembership(memberA, plan, {
+      startDate: addDays(today, -25),
+      endDate: addDays(today, 4),
+    });
+    await createMembership(memberB, plan, {
+      startDate: addDays(today, -1),
+      endDate: addDays(today, 28),
+    });
+
+    const overview = await me(sessionA).get('/membership');
+    expect(overview.status).toBe(200);
+    expect(overview.body).toEqual({
+      current: {
+        id: current.id,
+        planName: 'Monthly Standard',
+        priceMinor: 450_000,
+        status: 'ACTIVE',
+        effectiveStatus: 'ACTIVE',
+        startDate: current.startDate,
+        endDate: current.endDate,
+        accessDays: null,
+        accessStartTime: null,
+        accessEndTime: null,
+      },
+      next: null,
+      daysLeft: 5,
+      expiringSoon: true,
+    });
+
+    const next = await createMembership(memberA, plan, {
+      status: 'PENDING',
+      startDate: addDays(today, 5),
+      endDate: addDays(today, 34),
+    });
+    const renewed = await me(sessionA).get('/membership');
+    expect(renewed.body).toMatchObject({
+      current: { id: current.id },
+      next: { id: next.id, status: 'PENDING' },
+      expiringSoon: false,
+    });
+
+    const history = await me(sessionA).get('/memberships');
+    expect(history.body.data.map((m: { id: string }) => m.id)).toEqual([next.id, current.id]);
+    // No staff-only fields (reasons, staff, links) and nothing of member B's.
+    const body = JSON.stringify(history.body);
+    expect(body).not.toContain('Reason');
+    expect(body).not.toContain(memberB.id);
+  });
+
+  it('returns an empty overview to a member who has never had a membership', async () => {
+    const res = await me(sessionA).get('/membership');
+    expect(res.body).toEqual({ current: null, next: null, daysLeft: null, expiringSoon: false });
+    expect((await me(sessionA).get('/memberships')).body).toEqual({ data: [] });
+  });
+
+  it('is closed to staff', async () => {
+    const staff = await signIn(app, await createUser({ role: 'RECEPTIONIST' }));
+    expect((await me(staff).get('/membership')).status).toBe(403);
   });
 });

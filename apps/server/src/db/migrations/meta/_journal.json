@@ -29,6 +29,20 @@
       "when": 1792039817402,
       "tag": "0003_member_code_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792231852638,
+      "tag": "0004_memberships",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792231858876,
+      "tag": "0005_membership_guards",
+      "breakpoints": true
     }
   ]
 }

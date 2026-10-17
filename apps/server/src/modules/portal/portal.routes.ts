@@ -12,5 +12,7 @@ export function portalRoutes() {
   router.patch('/profile', controller.updateProfile);
   router.post('/profile/photo', ...singleImage('photo'), controller.uploadPhoto);
   router.get('/profile/photo', controller.getPhoto);
+  router.get('/membership', controller.getMembership);
+  router.get('/memberships', controller.listMemberships);
   return router;
 }

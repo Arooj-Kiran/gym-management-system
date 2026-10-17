@@ -8,15 +8,18 @@ import {
 import { Archive, ArrowLeft, History, UserX } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import type { z } from 'zod';
 import { ApiError } from '../../api/client';
 import { Button, ButtonLink } from '../../components/ui/button';
 import { Card, CardHeader } from '../../components/ui/card';
 import { EmptyState, ErrorState, Skeleton } from '../../components/ui/states';
+import { TabPanel, Tabs } from '../../components/ui/tabs';
 import { fullName, useCan } from '../../lib/auth';
 import { formatDate, formatPhone } from '../../lib/format';
+import { MemberMembershipTab } from '../memberships/member-membership-tab';
+import { MembershipStatusBadge } from '../memberships/membership-status-badge';
 import { DuplicatePhoneDialog } from './duplicate-phone-dialog';
 import { handleMemberSaveError, type PhoneWarning } from './member-errors';
 import { MemberAvatar } from './member-avatar';
@@ -156,10 +159,21 @@ function DetailSkeleton() {
   );
 }
 
+const TABS = [
+  { value: 'profile', label: 'Profile' },
+  { value: 'membership', label: 'Membership' },
+] as const;
+type Tab = (typeof TABS)[number]['value'];
+
 export function MemberDetailPage() {
   const { id = '' } = useParams();
   const can = useCan();
   const member = useMember(id);
+  const [params, setParams] = useSearchParams();
+  const showMemberships = can('memberships:read');
+  const tab: Tab = showMemberships && params.get('tab') === 'membership' ? 'membership' : 'profile';
+  const selectTab = (next: Tab) =>
+    setParams(next === 'profile' ? {} : { tab: next }, { replace: true });
 
   const back = (
     <Link
@@ -209,6 +223,21 @@ export function MemberDetailPage() {
   const record = member.data;
   const archived = Boolean(record.archivedAt);
   const canUpdate = can('members:update');
+  const details = (
+    <Card>
+      <CardHeader
+        title="Details"
+        description={
+          canUpdate && !archived ? 'Changes are recorded in the audit log.' : 'Read-only.'
+        }
+      />
+      {canUpdate && !archived ? (
+        <ProfileForm member={record} />
+      ) : (
+        <ProfileDetails member={record} />
+      )}
+    </Card>
+  );
 
   return (
     <>
@@ -223,6 +252,12 @@ export function MemberDetailPage() {
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <span className="font-mono text-13 text-fg-secondary">{record.memberCode}</span>
               <MemberStatusBadges member={record} />
+              {record.currentMembership && (
+                <span className="inline-flex items-center gap-1.5 text-13 text-fg-secondary">
+                  <span className="truncate">{record.currentMembership.planName}</span>
+                  <MembershipStatusBadge status={record.currentMembership.effectiveStatus} />
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -251,20 +286,25 @@ export function MemberDetailPage() {
         </div>
       )}
 
+      {showMemberships && (
+        <Tabs
+          label="Member sections"
+          idPrefix="member"
+          tabs={[...TABS]}
+          value={tab}
+          onChange={selectTab}
+          className="mb-6"
+        />
+      )}
+
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <Card>
-          <CardHeader
-            title="Details"
-            description={
-              canUpdate && !archived ? 'Changes are recorded in the audit log.' : 'Read-only.'
-            }
-          />
-          {canUpdate && !archived ? (
-            <ProfileForm member={record} />
-          ) : (
-            <ProfileDetails member={record} />
-          )}
-        </Card>
+        {showMemberships ? (
+          <TabPanel idPrefix="member" value={tab}>
+            {tab === 'membership' ? <MemberMembershipTab member={record} /> : details}
+          </TabPanel>
+        ) : (
+          details
+        )}
         <div className="flex flex-col gap-6">
           <PhotoCard member={record} canUpdate={canUpdate} />
           <EntryAccessCard member={record} canRestrict={can('access:restrict')} />

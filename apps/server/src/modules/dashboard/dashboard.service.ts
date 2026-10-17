@@ -2,23 +2,35 @@ import {
   permissionScope,
   SCOPES,
   type AuditAction,
+  type AuditEntityType,
+  type DashboardMembershipCounts,
   type DashboardActivityItem,
   type DashboardSummary,
   type Role,
 } from '@gms/shared';
-import { count, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '../../db/client';
-import { auditLogs, members, users } from '../../db/schema';
+import { auditLogs, members, memberships, users } from '../../db/schema';
 import { gymToday } from '../../lib/dates';
+import { currentEffectiveStatusSql, expiringSoonSql } from '../memberships/current-membership';
+import { getSettings } from '../settings/settings.service';
 
 const ACTIVITY_LIMIT = 8;
 
 /** Whole-gym member figures need unscoped member access; trainers get their own view later. */
 const seesAllMembers = (role: Role) => permissionScope(role, 'members:read') === SCOPES.ALL;
+const seesAllMemberships = (role: Role) => permissionScope(role, 'memberships:read') === SCOPES.ALL;
 
 export async function getSummary(role: Role): Promise<DashboardSummary> {
-  if (!seesAllMembers(role)) return { members: null };
+  const [memberCounts, membershipCounts] = await Promise.all([
+    seesAllMembers(role) ? getMemberCounts() : null,
+    seesAllMemberships(role) ? getMembershipCounts() : null,
+  ]);
+  return { members: memberCounts, memberships: membershipCounts };
+}
+
+async function getMemberCounts() {
   const [totals] = await db
     .select({
       total: count(),
@@ -29,11 +41,51 @@ export async function getSummary(role: Role): Promise<DashboardSummary> {
     })
     .from(members)
     .where(isNull(members.archivedAt));
-  return { members: { total: totals?.total ?? 0, registeredToday: totals?.registeredToday ?? 0 } };
+  return { total: totals?.total ?? 0, registeredToday: totals?.registeredToday ?? 0 };
 }
 
 /**
- * Recent member events from the audit trail. Only who / what / when — never the before/after
+ * Current members by the effective status of their current membership (one count per member),
+ * and the active memberships about to run out with no renewal lined up.
+ */
+async function getMembershipCounts(): Promise<DashboardMembershipCounts> {
+  const today = gymToday();
+  const { expiryReminderDays } = await getSettings();
+  const status = currentEffectiveStatusSql(members.id, today);
+  const countOf = (value: string) =>
+    sql<number>`count(*) filter (where ${status} = ${value})`.mapWith(Number);
+  const [[byStatus], [expiring]] = await Promise.all([
+    db
+      .select({
+        active: countOf('ACTIVE'),
+        pending: countOf('PENDING'),
+        suspended: countOf('SUSPENDED'),
+        expired: countOf('EXPIRED'),
+        cancelled: countOf('CANCELLED'),
+      })
+      .from(members)
+      .where(isNull(members.archivedAt)),
+    db
+      .select({ total: count() })
+      .from(memberships)
+      .innerJoin(members, eq(members.id, memberships.memberId))
+      .where(
+        and(isNull(members.archivedAt), expiringSoonSql('memberships', today, expiryReminderDays)),
+      ),
+  ]);
+  return {
+    active: byStatus?.active ?? 0,
+    pending: byStatus?.pending ?? 0,
+    suspended: byStatus?.suspended ?? 0,
+    expired: byStatus?.expired ?? 0,
+    cancelled: byStatus?.cancelled ?? 0,
+    expiringSoon: expiring?.total ?? 0,
+    expiringWithinDays: expiryReminderDays,
+  };
+}
+
+/**
+ * Recent member and membership events from the audit trail. Only who / what / when — never the before/after
  * values, which can hold contact details.
  */
 export async function getActivity(role: Role): Promise<DashboardActivityItem[]> {
@@ -43,6 +95,7 @@ export async function getActivity(role: Role): Promise<DashboardActivityItem[]> 
     .select({
       id: auditLogs.id,
       action: auditLogs.action,
+      entityType: auditLogs.entityType,
       createdAt: auditLogs.createdAt,
       actorFirstName: actor.firstName,
       actorLastName: actor.lastName,
@@ -53,14 +106,25 @@ export async function getActivity(role: Role): Promise<DashboardActivityItem[]> 
     })
     .from(auditLogs)
     .leftJoin(actor, eq(actor.id, auditLogs.actorUserId))
-    .leftJoin(members, eq(members.id, auditLogs.entityId))
-    .where(eq(auditLogs.entityType, 'MEMBER'))
+    .leftJoin(
+      memberships,
+      and(eq(auditLogs.entityType, 'MEMBERSHIP'), eq(memberships.id, auditLogs.entityId)),
+    )
+    .leftJoin(
+      members,
+      or(
+        and(eq(auditLogs.entityType, 'MEMBER'), eq(members.id, auditLogs.entityId)),
+        eq(members.id, memberships.memberId),
+      ),
+    )
+    .where(inArray(auditLogs.entityType, ['MEMBER', 'MEMBERSHIP']))
     .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id))
     .limit(ACTIVITY_LIMIT);
 
   return rows.map((row) => ({
     id: row.id,
     action: row.action as AuditAction,
+    entityType: row.entityType as AuditEntityType,
     createdAt: row.createdAt.toISOString(),
     actorName: row.actorFirstName ? `${row.actorFirstName} ${row.actorLastName}` : null,
     member:

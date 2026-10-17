@@ -9,8 +9,9 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { api } from '../../api/client';
 import { queryKeys } from '../../api/query-keys';
 
-export function usePlanList(query: PlanListQuery) {
+export function usePlanList(query: PlanListQuery, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: queryKeys.plans.list(query),
     queryFn: ({ signal }) =>
       api.get<Paginated<PlanDto>>('/membership-plans', { query: { ...query }, signal }),

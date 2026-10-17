@@ -5,3 +5,4 @@ export * from './audit-logs';
 export * from './gym-settings';
 export * from './members';
 export * from './membership-plans';
+export * from './memberships';

@@ -293,13 +293,9 @@
         "user_sessions_user_id_users_id_fk": {
           "name": "user_sessions_user_id_users_id_fk",
           "tableFrom": "user_sessions",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -381,13 +377,9 @@
         "staff_profiles_user_id_users_id_fk": {
           "name": "staff_profiles_user_id_users_id_fk",
           "tableFrom": "staff_profiles",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -558,13 +550,9 @@
         "audit_logs_actor_user_id_users_id_fk": {
           "name": "audit_logs_actor_user_id_users_id_fk",
           "tableFrom": "audit_logs",
-          "columnsFrom": [
-            "actor_user_id"
-          ],
+          "columnsFrom": ["actor_user_id"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -977,52 +965,36 @@
         "members_user_id_users_id_fk": {
           "name": "members_user_id_users_id_fk",
           "tableFrom": "members",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "members_access_blocked_by_users_id_fk": {
           "name": "members_access_blocked_by_users_id_fk",
           "tableFrom": "members",
-          "columnsFrom": [
-            "access_blocked_by"
-          ],
+          "columnsFrom": ["access_blocked_by"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "members_archived_by_users_id_fk": {
           "name": "members_archived_by_users_id_fk",
           "tableFrom": "members",
-          "columnsFrom": [
-            "archived_by"
-          ],
+          "columnsFrom": ["archived_by"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "members_created_by_users_id_fk": {
           "name": "members_created_by_users_id_fk",
           "tableFrom": "members",
-          "columnsFrom": [
-            "created_by"
-          ],
+          "columnsFrom": ["created_by"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -1242,40 +1214,22 @@
     "public.user_role": {
       "name": "user_role",
       "schema": "public",
-      "values": [
-        "ADMIN",
-        "MANAGER",
-        "RECEPTIONIST",
-        "TRAINER",
-        "MEMBER"
-      ]
+      "values": ["ADMIN", "MANAGER", "RECEPTIONIST", "TRAINER", "MEMBER"]
     },
     "public.member_account_status": {
       "name": "member_account_status",
       "schema": "public",
-      "values": [
-        "ACTIVE",
-        "INACTIVE"
-      ]
+      "values": ["ACTIVE", "INACTIVE"]
     },
     "public.duration_unit": {
       "name": "duration_unit",
       "schema": "public",
-      "values": [
-        "DAY",
-        "MONTH"
-      ]
+      "values": ["DAY", "MONTH"]
     },
     "public.plan_type": {
       "name": "plan_type",
       "schema": "public",
-      "values": [
-        "MONTHLY",
-        "QUARTERLY",
-        "SIX_MONTH",
-        "ANNUAL",
-        "CUSTOM"
-      ]
+      "values": ["MONTHLY", "QUARTERLY", "SIX_MONTH", "ANNUAL", "CUSTOM"]
     }
   },
   "schemas": {},

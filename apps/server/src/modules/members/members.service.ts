@@ -1,6 +1,7 @@
 import {
   ERROR_CODES,
   type DuplicateCheckResult,
+  type MembershipBrief,
   type MemberDto,
   type MemberMatch,
   type MemberSummaryDto,
@@ -44,6 +45,10 @@ import { hashPassword } from '../../lib/passwords';
 import type { RequestContext } from '../../lib/request-context';
 import type { UploadedImage } from '../../middleware/upload';
 import { revokeUserSessions } from '../auth/session.service';
+import {
+  currentEffectiveStatusSql,
+  currentMembershipBriefSql,
+} from '../memberships/current-membership';
 import { assertCanReadMember, type MemberReadScope } from './members.policy';
 
 type CreateMember = z.output<typeof createMemberSchema>;
@@ -51,6 +56,14 @@ type UpdateMember = z.output<typeof updateMemberSchema>;
 type MemberListQuery = z.output<typeof memberListQuerySchema>;
 type CheckDuplicateQuery = z.output<typeof checkDuplicateQuerySchema>;
 type MemberRow = typeof members.$inferSelect;
+type MemberWithMembership = MemberRow & { currentMembership: MembershipBrief | null };
+
+/** The member's current membership (PLAN §3.3), selected next to the member row. */
+const currentMembershipColumn = () => ({
+  currentMembership: currentMembershipBriefSql(members.id, gymToday()).mapWith(
+    (value) => value as MembershipBrief,
+  ),
+});
 
 const portalColumns = {
   portalEmail: users.email,
@@ -59,7 +72,7 @@ const portalColumns = {
   portalLastLoginAt: users.lastLoginAt,
 };
 
-type MemberWithPortal = MemberRow & {
+type MemberWithPortal = MemberWithMembership & {
   portalEmail: string | null;
   portalIsActive: boolean | null;
   portalMustChangePassword: boolean | null;
@@ -73,7 +86,7 @@ export function memberPhotoUrl(basePath: string, key: string | null): string | n
   return `${basePath}?v=${version}`;
 }
 
-function toSummary(row: MemberRow): MemberSummaryDto {
+function toSummary(row: MemberWithMembership): MemberSummaryDto {
   return {
     id: row.id,
     memberCode: row.memberCode,
@@ -89,6 +102,7 @@ function toSummary(row: MemberRow): MemberSummaryDto {
     archivedAt: row.archivedAt?.toISOString() ?? null,
     isDemo: row.isDemo,
     createdAt: row.createdAt.toISOString(),
+    currentMembership: row.currentMembership ?? null,
   };
 }
 
@@ -116,7 +130,7 @@ function toDto(row: MemberWithPortal): MemberDto {
 
 async function findRow(executor: DbExecutor, id: string, forUpdate = false) {
   const query = executor
-    .select({ ...getTableColumns(members), ...portalColumns })
+    .select({ ...getTableColumns(members), ...portalColumns, ...currentMembershipColumn() })
     .from(members)
     .leftJoin(users, eq(users.id, members.userId))
     .where(eq(members.id, id))
@@ -307,6 +321,14 @@ export async function listMembers(query: MemberListQuery, scope: MemberReadScope
   }
   if (query.registeredFrom) filters.push(gte(members.registrationDate, query.registeredFrom));
   if (query.registeredTo) filters.push(lte(members.registrationDate, query.registeredTo));
+  if (query.membershipStatus) {
+    const status = currentEffectiveStatusSql(members.id, gymToday());
+    filters.push(
+      query.membershipStatus === 'NONE'
+        ? sql`${status} is null`
+        : sql`${status} = ${query.membershipStatus}`,
+    );
+  }
   if (query.q) {
     const pattern = likePattern(query.q);
     const digits = query.q.replace(/\D/g, '');
@@ -328,7 +350,7 @@ export async function listMembers(query: MemberListQuery, scope: MemberReadScope
 
   const [rows, [totals]] = await Promise.all([
     db
-      .select()
+      .select({ ...getTableColumns(members), ...currentMembershipColumn() })
       .from(members)
       .where(where)
       .orderBy(...orderBy, asc(members.id))

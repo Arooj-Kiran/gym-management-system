@@ -15,3 +15,9 @@ export function isUniqueViolation(error: unknown, constraint: string): boolean {
   const pg = pgError(error);
   return pg?.code === '23505' && pg.constraint === constraint;
 }
+
+/** True when the error is an exclusion-constraint violation (e.g. overlapping periods). */
+export function isExclusionViolation(error: unknown, constraint: string): boolean {
+  const pg = pgError(error);
+  return pg?.code === '23P01' && pg.constraint === constraint;
+}

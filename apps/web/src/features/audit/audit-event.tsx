@@ -10,6 +10,7 @@ const ENTITY_LABELS: Record<string, string> = {
   GYM_SETTINGS: 'Gym settings',
   MEMBER: 'Member',
   MEMBERSHIP_PLAN: 'Membership plan',
+  MEMBERSHIP: 'Membership',
 };
 
 function Changes({ event }: { event: AuditLogDto }) {
@@ -116,6 +117,14 @@ export function AuditEvent({ event }: { event: AuditLogDto }) {
               className="inline-flex w-fit items-center gap-1 text-13 font-medium text-primary-text hover:underline"
             >
               Open account <ArrowRight className="size-3.5" aria-hidden />
+            </Link>
+          )}
+          {event.entityType === 'MEMBERSHIP' && typeof event.after?.memberId === 'string' && (
+            <Link
+              to={`/members/${event.after.memberId}?tab=membership`}
+              className="inline-flex w-fit items-center gap-1 text-13 font-medium text-primary-text hover:underline"
+            >
+              Open member <ArrowRight className="size-3.5" aria-hidden />
             </Link>
           )}
           {event.entityType === 'MEMBER' && event.entityId && (

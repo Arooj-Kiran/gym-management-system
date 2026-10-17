@@ -11,7 +11,7 @@ test('the receptionist registers a member who shares a phone number', async ({ p
   await signInAs(page, 'RECEPTIONIST');
   await page
     .getByRole('navigation', { name: 'Main' })
-    .getByRole('link', { name: 'Members' })
+    .getByRole('link', { name: 'Members', exact: true })
     .click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Members');
 

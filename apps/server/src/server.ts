@@ -1,15 +1,18 @@
 import { createApp } from './app';
 import { config } from './config/env';
 import { closeDb } from './db/client';
+import { startScheduler } from './jobs/scheduler';
 import { logger } from './lib/logger';
 
 const server = createApp().listen(config.port, () => {
   logger.info({ port: config.port, env: config.nodeEnv }, 'API server listening');
 });
+const stopScheduler = startScheduler();
 
 function shutdown(signal: string) {
   logger.info({ signal }, 'Shutting down');
   server.close(async () => {
+    await stopScheduler();
     await closeDb();
     process.exit(0);
   });

@@ -11,6 +11,8 @@ import {
 const ADMIN_PAGES = [
   { path: '/', heading: /Good (morning|afternoon|evening)/ },
   { path: '/members', heading: 'Members' },
+  { path: '/memberships', heading: 'Memberships' },
+  { path: '/memberships?expiring=7', heading: 'Expiring soon' },
   { path: '/plans', heading: 'Membership plans' },
   { path: '/staff', heading: 'Staff' },
   { path: '/settings', heading: 'Settings' },
@@ -20,6 +22,7 @@ const ADMIN_PAGES = [
 
 const PORTAL_PAGES = [
   { path: '/portal', heading: 'My profile' },
+  { path: '/portal/membership', heading: 'My membership' },
   { path: '/portal/plans', heading: 'Membership plans' },
   { path: '/account', heading: 'My account' },
 ];
@@ -64,6 +67,13 @@ for (const viewport of VIEWPORTS) {
       await expect(page.getByRole('heading', { level: 1 })).toHaveText(name);
       await expect(page.getByRole('status', { name: /loading/i })).toHaveCount(0);
       // A load failure must not pass as a rendered screen.
+      await expect(page.getByRole('alert')).toHaveCount(0);
+      await expectNoHorizontalOverflow(page);
+      await expectNoAxeViolations(page);
+
+      await page.getByRole('tab', { name: 'Membership' }).click();
+      await expect(page.getByRole('tabpanel', { name: 'Membership' })).toBeVisible();
+      await expect(page.getByRole('status', { name: /loading/i })).toHaveCount(0);
       await expect(page.getByRole('alert')).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
       await expectNoAxeViolations(page);

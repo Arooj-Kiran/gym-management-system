@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { closeDb } from '../../src/db/client';
 import { signIn, testApp, type Session } from '../setup/auth';
 import { resetTables } from '../setup/db';
-import { createMember, createPlan, createUser } from '../setup/factories';
+import { createMember, createMembership, createPlan, createUser } from '../setup/factories';
 
 /**
  * Permission-matrix harness (PLAN §5): every protected route × every role.
@@ -20,6 +20,7 @@ interface Targets {
   userId: string;
   memberId: string;
   planId: string;
+  membershipId: string;
 }
 
 interface RouteCase {
@@ -145,11 +146,75 @@ const ROUTES: RouteCase[] = [
     path: ({ planId }) => `/api/v1/membership-plans/${planId}/unarchive`,
     permission: 'plans:manage',
   },
+  // Memberships (Stage 3)
+  {
+    method: 'get',
+    path: () => '/api/v1/memberships',
+    permission: 'memberships:read',
+    scopedDeny: STAFF_ONLY,
+  },
+  { method: 'post', path: () => '/api/v1/memberships', permission: 'memberships:assign' },
+  {
+    method: 'get',
+    path: ({ membershipId }) => `/api/v1/memberships/${membershipId}`,
+    permission: 'memberships:read',
+    scopedDeny: STAFF_ONLY_UNASSIGNED,
+  },
+  {
+    method: 'get',
+    path: ({ membershipId }) => `/api/v1/memberships/${membershipId}/events`,
+    permission: 'memberships:read',
+    scopedDeny: STAFF_ONLY_UNASSIGNED,
+  },
+  {
+    method: 'post',
+    path: ({ membershipId }) => `/api/v1/memberships/${membershipId}/activate`,
+    permission: 'memberships:activate',
+  },
+  {
+    method: 'post',
+    path: ({ membershipId }) => `/api/v1/memberships/${membershipId}/renew`,
+    permission: 'memberships:renew',
+  },
+  {
+    method: 'post',
+    path: ({ membershipId }) => `/api/v1/memberships/${membershipId}/extend`,
+    permission: 'memberships:change-status',
+  },
+  {
+    method: 'post',
+    path: ({ membershipId }) => `/api/v1/memberships/${membershipId}/suspend`,
+    permission: 'memberships:change-status',
+  },
+  {
+    method: 'post',
+    path: ({ membershipId }) => `/api/v1/memberships/${membershipId}/reactivate`,
+    permission: 'memberships:change-status',
+  },
+  {
+    method: 'post',
+    path: ({ membershipId }) => `/api/v1/memberships/${membershipId}/cancel`,
+    permission: 'memberships:change-status',
+  },
+  {
+    method: 'get',
+    path: ({ memberId }) => `/api/v1/members/${memberId}/memberships`,
+    permission: 'memberships:read',
+    scopedDeny: STAFF_ONLY_UNASSIGNED,
+  },
+  {
+    method: 'get',
+    path: ({ memberId }) => `/api/v1/members/${memberId}/membership-events`,
+    permission: 'memberships:read',
+    scopedDeny: STAFF_ONLY_UNASSIGNED,
+  },
   // Member portal (Stage 2): the member role only
   { method: 'get', path: () => '/api/v1/me/profile', roles: ['MEMBER'] },
   { method: 'patch', path: () => '/api/v1/me/profile', roles: ['MEMBER'] },
   { method: 'get', path: () => '/api/v1/me/profile/photo', roles: ['MEMBER'] },
   { method: 'post', path: () => '/api/v1/me/profile/photo', roles: ['MEMBER'] },
+  { method: 'get', path: () => '/api/v1/me/membership', roles: ['MEMBER'] },
+  { method: 'get', path: () => '/api/v1/me/memberships', roles: ['MEMBER'] },
   // Dashboard (grows per stage)
   { method: 'get', path: () => '/api/v1/dashboard/summary', permission: 'dashboard:read' },
   { method: 'get', path: () => '/api/v1/dashboard/activity', permission: 'dashboard:read' },
@@ -166,10 +231,17 @@ let targets: Targets;
 
 beforeAll(async () => {
   await resetTables();
+  const member = await createMember({ firstName: 'Matrix', lastName: 'Member' });
+  const plan = await createPlan({ name: 'Matrix Plan' });
+  const membership = await createMembership(member, plan, {
+    startDate: '2026-01-01',
+    endDate: '2099-12-31',
+  });
   targets = {
     userId: (await createUser({ role: 'TRAINER', firstName: 'Matrix', lastName: 'Target' })).id,
-    memberId: (await createMember({ firstName: 'Matrix', lastName: 'Member' })).id,
-    planId: (await createPlan({ name: 'Matrix Plan' })).id,
+    memberId: member.id,
+    planId: plan.id,
+    membershipId: membership.id,
   };
   for (const role of ROLES) sessions.set(role, await signIn(app, await createUser({ role })));
 });
@@ -180,7 +252,7 @@ const BAD_BODY = { unexpectedField: true };
 describe.each(
   ROUTES.map((route) => ({
     ...route,
-    label: route.path({ userId: ':id', memberId: ':id', planId: ':id' }),
+    label: route.path({ userId: ':id', memberId: ':id', planId: ':id', membershipId: ':id' }),
   })),
 )('$method $label', (route) => {
   it.each(ROLES)('role %s', async (role) => {

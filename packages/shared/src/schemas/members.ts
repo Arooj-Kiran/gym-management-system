@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MEMBER_ACCOUNT_STATUSES, type MemberAccountStatus } from '../enums';
+import { MEMBER_ACCOUNT_STATUSES, MEMBERSHIP_STATUSES, type MemberAccountStatus } from '../enums';
 import {
   emailSchema,
   isoDateSchema,
@@ -16,6 +16,7 @@ import {
   reasonSchema,
   requiredReasonSchema,
 } from './common';
+import type { MembershipBrief } from './memberships';
 
 export const memberAccountStatusSchema = z.enum(MEMBER_ACCOUNT_STATUSES, {
   error: 'Choose an account status',
@@ -125,6 +126,8 @@ export const memberListQuerySchema = z.strictObject({
   accessBlocked: queryBooleanSchema.optional(),
   registeredFrom: optionalIsoDateSchema,
   registeredTo: optionalIsoDateSchema,
+  /** Effective status of the member's current membership; NONE = never had one. */
+  membershipStatus: z.enum([...MEMBERSHIP_STATUSES, 'NONE']).optional(),
 });
 export type MemberListQuery = z.input<typeof memberListQuerySchema>;
 
@@ -158,6 +161,8 @@ export interface MemberSummaryDto {
   archivedAt: string | null;
   isDemo: boolean;
   createdAt: string;
+  /** The membership the member is on now (or next, or most recently); null if never assigned. */
+  currentMembership: MembershipBrief | null;
 }
 
 export interface MemberPortalAccount {

@@ -6,6 +6,7 @@ import {
 } from '../../middleware/require-permission';
 import { authenticated } from '../../middleware/session';
 import { singleImage } from '../../middleware/upload';
+import * as membershipsController from '../memberships/memberships.controller';
 import * as controller from './members.controller';
 
 /** Staff routes. Members read themselves through /me and get 403 here (PLAN §4.10). */
@@ -30,6 +31,16 @@ export function membersRoutes() {
     controller.uploadPhoto,
   );
   router.get('/:id/photo', controller.getPhoto);
+  router.get(
+    '/:id/memberships',
+    requirePermission('memberships:read'),
+    membershipsController.listForMember,
+  );
+  router.get(
+    '/:id/membership-events',
+    requirePermission('memberships:read'),
+    membershipsController.eventsForMember,
+  );
   router.post(
     '/:id/portal-account',
     requirePermission('members:update'),

@@ -1,4 +1,10 @@
-import type { AuditListQuery, MemberListQuery, PlanListQuery, StaffListQuery } from '@gms/shared';
+import type {
+  AuditListQuery,
+  MemberListQuery,
+  MembershipListQuery,
+  PlanListQuery,
+  StaffListQuery,
+} from '@gms/shared';
 
 export const queryKeys = {
   me: ['auth', 'me'] as const,
@@ -11,6 +17,8 @@ export const queryKeys = {
     all: ['members'] as const,
     list: (query: MemberListQuery) => ['members', 'list', query] as const,
     detail: (id: string) => ['members', 'detail', id] as const,
+    memberships: (id: string) => ['members', 'memberships', id] as const,
+    membershipEvents: (id: string) => ['members', 'membership-events', id] as const,
     duplicates: (query: Record<string, string | undefined>) =>
       ['members', 'duplicates', query] as const,
   },
@@ -18,8 +26,14 @@ export const queryKeys = {
     all: ['plans'] as const,
     list: (query: PlanListQuery) => ['plans', 'list', query] as const,
   },
+  memberships: {
+    all: ['memberships'] as const,
+    list: (query: MembershipListQuery) => ['memberships', 'list', query] as const,
+  },
   portal: {
     profile: ['portal', 'profile'] as const,
+    membership: ['portal', 'membership'] as const,
+    memberships: ['portal', 'memberships'] as const,
   },
   dashboard: {
     all: ['dashboard'] as const,

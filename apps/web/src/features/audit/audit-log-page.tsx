@@ -29,6 +29,7 @@ const ENTITY_LABELS: Record<AuditEntityType, string> = {
   GYM_SETTINGS: 'Gym settings',
   MEMBER: 'Members',
   MEMBERSHIP_PLAN: 'Membership plans',
+  MEMBERSHIP: 'Memberships',
 };
 
 function useAuditFilters() {

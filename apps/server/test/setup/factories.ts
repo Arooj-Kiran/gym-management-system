@@ -1,6 +1,6 @@
 import type { Role } from '@gms/shared';
 import { db } from '../../src/db/client';
-import { members, membershipPlans, staffProfiles, users } from '../../src/db/schema';
+import { members, membershipPlans, memberships, staffProfiles, users } from '../../src/db/schema';
 import { hashPassword } from '../../src/lib/passwords';
 
 /** Fictional test password; only ever used against the throwaway test database. */
@@ -87,4 +87,31 @@ export async function createPlan(overrides: Partial<typeof membershipPlans.$infe
     })
     .returning();
   return plan!;
+}
+
+/**
+ * Inserts a membership row directly (no overlap pre-check, no events): for setting up state.
+ * Use the API to test the transitions themselves.
+ */
+export async function createMembership(
+  member: { id: string },
+  plan: typeof membershipPlans.$inferSelect,
+  overrides: Partial<typeof memberships.$inferInsert> & { startDate: string; endDate: string },
+) {
+  const status = overrides.status ?? 'ACTIVE';
+  const [membership] = await db
+    .insert(memberships)
+    .values({
+      memberId: member.id,
+      planId: plan.id,
+      planNameSnapshot: plan.name,
+      priceMinorSnapshot: plan.priceMinor,
+      status,
+      activatedAt: status === 'PENDING' || status === 'CANCELLED' ? null : new Date(),
+      suspendedAt: status === 'SUSPENDED' ? new Date() : null,
+      cancelledAt: status === 'CANCELLED' ? new Date() : null,
+      ...overrides,
+    })
+    .returning();
+  return membership!;
 }

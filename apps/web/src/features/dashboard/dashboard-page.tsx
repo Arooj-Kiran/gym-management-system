@@ -1,4 +1,4 @@
-import { permissionScope, ROLE_LABELS } from '@gms/shared';
+import { permissionScope, ROLE_LABELS, type DashboardMembershipCounts } from '@gms/shared';
 import {
   ArrowRight,
   CircleCheck,
@@ -9,6 +9,7 @@ import {
   ScrollText,
   Settings,
   Tags,
+  Ticket,
   UserPlus,
   UserRoundPlus,
   UsersRound,
@@ -160,13 +161,120 @@ function MemberOverview() {
   return <MemberStats {...summary.data.members} />;
 }
 
+interface MembershipCell {
+  label: string;
+  value: number;
+  to: string;
+  dot: string;
+  hint?: string;
+  highlight?: boolean;
+}
+
+/** Members counted once each, by the membership they are on today. */
+function MembershipStats({ counts }: { counts: DashboardMembershipCounts }) {
+  const days = counts.expiringWithinDays;
+  const cells: MembershipCell[] = [
+    { label: 'Active', value: counts.active, to: '/memberships?status=ACTIVE', dot: 'bg-success' },
+    {
+      label: 'Expiring soon',
+      value: counts.expiringSoon,
+      to: `/memberships?expiring=${days}`,
+      dot: 'bg-warning-text',
+      hint: `Next ${days} days, not renewed`,
+      highlight: counts.expiringSoon > 0,
+    },
+    {
+      label: 'Pending',
+      value: counts.pending,
+      to: '/memberships?status=PENDING',
+      dot: 'bg-primary',
+    },
+    {
+      label: 'Suspended',
+      value: counts.suspended,
+      to: '/memberships?status=SUSPENDED',
+      dot: 'bg-warning-text',
+    },
+    {
+      label: 'Expired',
+      value: counts.expired,
+      to: '/memberships?status=EXPIRED',
+      dot: 'bg-danger',
+    },
+    {
+      label: 'Cancelled',
+      value: counts.cancelled,
+      to: '/memberships?status=CANCELLED',
+      dot: 'bg-border-strong',
+    },
+  ];
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader
+        title="Memberships"
+        description="Each member counted once, by the membership they are on today"
+        action={
+          <Link to="/memberships" className="text-13 font-medium text-primary-text hover:underline">
+            All memberships
+          </Link>
+        }
+      />
+      <ul className="grid grid-cols-2 gap-px bg-border sm:grid-cols-3 xl:grid-cols-6">
+        {cells.map((cell) => (
+          <li key={cell.label} className="bg-surface">
+            <Link
+              to={cell.to}
+              className={cn(
+                'flex h-full flex-col px-4 py-4 transition-colors duration-150 hover:bg-surface-hover focus-visible:-outline-offset-2 sm:px-5',
+                cell.highlight && 'bg-warning-subtle/60 hover:bg-warning-subtle',
+              )}
+            >
+              <span className="flex items-center gap-2 text-13 font-medium text-fg-secondary">
+                <span className={cn('size-2 rounded-full', cell.dot)} aria-hidden />
+                {cell.label}
+              </span>
+              <span className="mt-1 text-[1.75rem] leading-9 font-semibold tracking-tight text-fg tabular-nums">
+                {cell.value}
+              </span>
+              {cell.hint && <span className="text-xs text-fg-muted">{cell.hint}</span>}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+function MembershipOverview() {
+  const summary = useDashboardSummary();
+  // The member overview above already shows the error and retry for this shared query.
+  if (summary.isError) return null;
+  if (summary.isPending)
+    return (
+      <Card>
+        <CardHeader title="Memberships" />
+        <div
+          role="status"
+          aria-label="Loading membership figures"
+          className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 sm:px-5 xl:grid-cols-6"
+        >
+          {Array.from({ length: 6 }, (_, index) => (
+            <Skeleton key={index} className="h-16" />
+          ))}
+        </div>
+      </Card>
+    );
+  if (!summary.data.memberships) return null;
+  return <MembershipStats counts={summary.data.memberships} />;
+}
+
 function MemberActivity() {
   const activity = useDashboardActivity();
   return (
     <Card>
       <CardHeader
         title="Recent member activity"
-        description="Registrations, profile changes and access decisions"
+        description="Registrations, memberships and access decisions"
         action={
           <Link to="/members" className="text-13 font-medium text-primary-text hover:underline">
             All members
@@ -181,7 +289,7 @@ function MemberActivity() {
         <EmptyState
           icon={<Contact aria-hidden />}
           title="No member activity yet"
-          description="Registrations and changes to member records show up here."
+          description="Registrations, membership changes and changes to member records show up here."
         />
       ) : (
         <ul className="divide-y divide-border">
@@ -373,6 +481,16 @@ export function DashboardPage() {
       icon: Contact,
     });
   }
+  if (seesMembers && can('memberships:read')) {
+    actions.push({
+      to: '/memberships',
+      label: 'Memberships',
+      description: can('memberships:assign')
+        ? 'Expiring soon, status filters; assign from a member’s page'
+        : 'Expiring soon and status filters',
+      icon: Ticket,
+    });
+  }
   if (can('plans:read')) {
     actions.push({
       to: '/plans',
@@ -440,6 +558,7 @@ export function DashboardPage() {
 
       <div className="flex flex-col gap-6">
         {seesMembers && <MemberOverview />}
+        {seesMembers && can('memberships:read') && <MembershipOverview />}
         {can('staff:read') && <StaffStats />}
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="flex flex-col gap-6">

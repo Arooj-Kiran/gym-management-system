@@ -17,6 +17,7 @@ import { authRoutes } from './modules/auth/auth.routes';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes';
 import { healthRoutes } from './modules/health/health.routes';
 import { membersRoutes } from './modules/members/members.routes';
+import { membershipsRoutes } from './modules/memberships/memberships.routes';
 import { plansRoutes } from './modules/plans/plans.routes';
 import { portalRoutes } from './modules/portal/portal.routes';
 import { settingsRoutes } from './modules/settings/settings.routes';
@@ -78,6 +79,7 @@ export function createApp(options: AppOptions = {}) {
   api.use('/audit-logs', auditRoutes());
   api.use('/members', membersRoutes());
   api.use('/membership-plans', plansRoutes());
+  api.use('/memberships', membershipsRoutes());
   api.use('/me', portalRoutes());
   api.use('/dashboard', dashboardRoutes());
   api.use(notFoundHandler);

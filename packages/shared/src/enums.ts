@@ -26,6 +26,14 @@ export const AUDIT_ACTIONS = [
   'PLAN_UPDATED',
   'PLAN_ARCHIVED',
   'PLAN_UNARCHIVED',
+  'MEMBERSHIP_ASSIGNED',
+  'MEMBERSHIP_ACTIVATED',
+  'MEMBERSHIP_RENEWED',
+  'MEMBERSHIP_EXTENDED',
+  'MEMBERSHIP_SUSPENDED',
+  'MEMBERSHIP_REACTIVATED',
+  'MEMBERSHIP_CANCELLED',
+  'MEMBERSHIP_EXPIRED',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -56,9 +64,23 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   PLAN_UPDATED: 'Plan updated',
   PLAN_ARCHIVED: 'Plan archived',
   PLAN_UNARCHIVED: 'Plan restored',
+  MEMBERSHIP_ASSIGNED: 'Membership assigned',
+  MEMBERSHIP_ACTIVATED: 'Membership activated',
+  MEMBERSHIP_RENEWED: 'Membership renewed',
+  MEMBERSHIP_EXTENDED: 'Membership extended',
+  MEMBERSHIP_SUSPENDED: 'Membership suspended',
+  MEMBERSHIP_REACTIVATED: 'Membership reactivated',
+  MEMBERSHIP_CANCELLED: 'Membership cancelled',
+  MEMBERSHIP_EXPIRED: 'Membership expired',
 };
 
-export const AUDIT_ENTITY_TYPES = ['USER', 'GYM_SETTINGS', 'MEMBER', 'MEMBERSHIP_PLAN'] as const;
+export const AUDIT_ENTITY_TYPES = [
+  'USER',
+  'GYM_SETTINGS',
+  'MEMBER',
+  'MEMBERSHIP_PLAN',
+  'MEMBERSHIP',
+] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 
 export const ERROR_CODES = {
@@ -78,6 +100,12 @@ export const ERROR_CODES = {
   DUPLICATE_PLAN_NAME: 'DUPLICATE_PLAN_NAME',
   MEMBER_ARCHIVED: 'MEMBER_ARCHIVED',
   PORTAL_ACCOUNT_EXISTS: 'PORTAL_ACCOUNT_EXISTS',
+  PLAN_ARCHIVED: 'PLAN_ARCHIVED',
+  MEMBERSHIP_OVERLAP: 'MEMBERSHIP_OVERLAP',
+  INVALID_STATUS_TRANSITION: 'INVALID_STATUS_TRANSITION',
+  MEMBERSHIP_PERIOD_ENDED: 'MEMBERSHIP_PERIOD_ENDED',
+  NOT_LATEST_MEMBERSHIP: 'NOT_LATEST_MEMBERSHIP',
+  STALE_VERSION: 'STALE_VERSION',
   LAST_ADMIN: 'LAST_ADMIN',
   SELF_ACTION_NOT_ALLOWED: 'SELF_ACTION_NOT_ALLOWED',
   RATE_LIMITED: 'RATE_LIMITED',
@@ -115,6 +143,47 @@ export const FIXED_PLAN_MONTHS: Record<Exclude<PlanType, 'CUSTOM'>, number> = {
   QUARTERLY: 3,
   SIX_MONTH: 6,
   ANNUAL: 12,
+};
+
+/** D2: PENDING = assigned but not yet activated; never eligible for entry. */
+export const MEMBERSHIP_STATUSES = [
+  'PENDING',
+  'ACTIVE',
+  'SUSPENDED',
+  'CANCELLED',
+  'EXPIRED',
+] as const;
+export type MembershipStatus = (typeof MEMBERSHIP_STATUSES)[number];
+
+export const MEMBERSHIP_STATUS_LABELS: Record<MembershipStatus, string> = {
+  PENDING: 'Pending',
+  ACTIVE: 'Active',
+  SUSPENDED: 'Suspended',
+  CANCELLED: 'Cancelled',
+  EXPIRED: 'Expired',
+};
+
+export const MEMBERSHIP_EVENT_TYPES = [
+  'CREATED',
+  'ACTIVATED',
+  'RENEWED',
+  'EXTENDED',
+  'SUSPENDED',
+  'REACTIVATED',
+  'CANCELLED',
+  'EXPIRED',
+] as const;
+export type MembershipEventType = (typeof MEMBERSHIP_EVENT_TYPES)[number];
+
+export const MEMBERSHIP_EVENT_LABELS: Record<MembershipEventType, string> = {
+  CREATED: 'Assigned',
+  ACTIVATED: 'Activated',
+  RENEWED: 'Renewed',
+  EXTENDED: 'Extended',
+  SUSPENDED: 'Suspended',
+  REACTIVATED: 'Reactivated',
+  CANCELLED: 'Cancelled',
+  EXPIRED: 'Expired',
 };
 
 /** ISO weekdays, Monday = 1 … Sunday = 7. */

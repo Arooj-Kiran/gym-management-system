@@ -8,7 +8,9 @@ import { DashboardPage } from '../features/dashboard/dashboard-page';
 import { NotFoundPage, RouteErrorPage } from '../features/errors/error-pages';
 import { MemberDetailPage } from '../features/members/member-detail-page';
 import { MembersListPage } from '../features/members/members-list-page';
+import { MembershipsPage } from '../features/memberships/memberships-page';
 import { PlansPage } from '../features/plans/plans-page';
+import { PortalMembershipPage } from '../features/portal/portal-membership-page';
 import { PortalPlansPage } from '../features/portal/portal-plans-page';
 import { PortalProfilePage } from '../features/portal/portal-profile-page';
 import { SettingsPage } from '../features/settings/settings-page';
@@ -33,6 +35,7 @@ export const routes = [
                 element: <RequireMember />,
                 children: [
                   { path: '/portal', element: <PortalProfilePage /> },
+                  { path: '/portal/membership', element: <PortalMembershipPage /> },
                   { path: '/portal/plans', element: <PortalPlansPage /> },
                 ],
               },
@@ -46,6 +49,10 @@ export const routes = [
                       { path: '/members', element: <MembersListPage /> },
                       { path: '/members/:id', element: <MemberDetailPage /> },
                     ],
+                  },
+                  {
+                    element: <RequirePermission permission="memberships:read" fullScope />,
+                    children: [{ path: '/memberships', element: <MembershipsPage /> }],
                   },
                   {
                     element: <RequirePermission permission="plans:read" />,

@@ -25,3 +25,11 @@ export async function uploadPhoto(req: Request, res: Response) {
 export async function getPhoto(req: Request, res: Response) {
   sendImage(res, await portalService.readMyPhoto(userId(req)));
 }
+
+export async function getMembership(req: Request, res: Response) {
+  res.json(await portalService.getMyMembership(userId(req)));
+}
+
+export async function listMemberships(req: Request, res: Response) {
+  res.json({ data: await portalService.getMyMemberships(userId(req)) });
+}

@@ -1,6 +1,7 @@
 import {
   AUDIT_ACTION_LABELS,
   MEMBER_ACCOUNT_STATUS_LABELS,
+  MEMBERSHIP_STATUS_LABELS,
   PLAN_TYPE_LABELS,
   ROLE_LABELS,
   type AuditAction,
@@ -27,6 +28,14 @@ const TONES: Partial<Record<AuditAction, BadgeTone>> = {
   PLAN_CREATED: 'success',
   PLAN_ARCHIVED: 'danger',
   PLAN_UNARCHIVED: 'success',
+  MEMBERSHIP_ASSIGNED: 'primary',
+  MEMBERSHIP_ACTIVATED: 'success',
+  MEMBERSHIP_RENEWED: 'success',
+  MEMBERSHIP_EXTENDED: 'primary',
+  MEMBERSHIP_SUSPENDED: 'warning',
+  MEMBERSHIP_REACTIVATED: 'success',
+  MEMBERSHIP_CANCELLED: 'danger',
+  MEMBERSHIP_EXPIRED: 'neutral',
 };
 
 export const auditTone = (action: AuditAction): BadgeTone => TONES[action] ?? 'neutral';
@@ -92,6 +101,22 @@ const FIELD_LABELS: Record<string, string> = {
   accessDays: 'Access days',
   accessStartTime: 'Access from',
   accessEndTime: 'Access until',
+  memberId: 'Member ID',
+  planId: 'Plan ID',
+  planName: 'Plan',
+  previousPlanName: 'Previous plan',
+  status: 'Status',
+  previousStatus: 'Previous status',
+  startDate: 'Start date',
+  endDate: 'End date',
+  previousEndDate: 'Previous end date',
+  expiredOn: 'Expired on',
+  days: 'Days added',
+  suspendedAt: 'Suspended at',
+  suspensionReason: 'Suspension reason',
+  suspendedDays: 'Days suspended',
+  extendedBySuspendedDays: 'End date pushed back',
+  renewedFromId: 'Renewed from',
 };
 
 export const fieldLabel = (key: string) => FIELD_LABELS[key] ?? key;
@@ -99,6 +124,7 @@ export const fieldLabel = (key: string) => FIELD_LABELS[key] ?? key;
 const VALUE_LABELS: Record<string, string> = {
   ...ROLE_LABELS,
   ...MEMBER_ACCOUNT_STATUS_LABELS,
+  ...MEMBERSHIP_STATUS_LABELS,
   ...PLAN_TYPE_LABELS,
   DAY: 'Days',
   MONTH: 'Months',

@@ -1,6 +1,7 @@
 export * from './roles';
 export * from './permissions';
 export * from './enums';
+export * from './memberships';
 export * from './schemas/common';
 export * from './schemas/auth';
 export * from './schemas/staff';
@@ -10,3 +11,4 @@ export * from './schemas/members';
 export * from './schemas/plans';
 export * from './schemas/portal';
 export * from './schemas/dashboard';
+export * from './schemas/memberships';

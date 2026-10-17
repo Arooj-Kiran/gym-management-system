@@ -1,6 +1,8 @@
 import {
   MEMBER_ACCOUNT_STATUS_LABELS,
   MEMBER_ACCOUNT_STATUSES,
+  MEMBERSHIP_STATUS_LABELS,
+  MEMBERSHIP_STATUSES,
   type MEMBER_SORT_FIELDS,
   type MemberAccountStatus,
   type MemberListQuery,
@@ -19,6 +21,7 @@ import { EmptyState, ErrorState, ListSkeleton } from '../../components/ui/states
 import { fullName, useCan } from '../../lib/auth';
 import { cn } from '../../lib/cn';
 import { formatDate, formatPhone } from '../../lib/format';
+import { MembershipStatusBadge } from '../memberships/membership-status-badge';
 import { CreateMemberDialog } from './create-member-dialog';
 import { MemberAvatar } from './member-avatar';
 import { MemberStatusBadges } from './member-status';
@@ -46,12 +49,18 @@ const VIEWS = [
 const isStatus = (value: string | null): value is MemberAccountStatus =>
   MEMBER_ACCOUNT_STATUSES.includes(value as MemberAccountStatus);
 
+const MEMBERSHIP_FILTERS = [...MEMBERSHIP_STATUSES, 'NONE'] as const;
+type MembershipFilter = (typeof MEMBERSHIP_FILTERS)[number];
+const isMembershipFilter = (value: string | null): value is MembershipFilter =>
+  MEMBERSHIP_FILTERS.includes(value as MembershipFilter);
+
 /** Filters live in the URL so the list can be bookmarked and survives a refresh. */
 function useMemberFilters() {
   const [params, setParams] = useSearchParams();
   const status = params.get('status');
   const view = VIEWS.find((option) => option.value === params.get('view'))?.value ?? 'current';
   const access = params.get('access');
+  const membership = params.get('membership');
   const sortParam = params.get('sort') ?? DEFAULT_SORT;
   const sort = SORT_OPTIONS.some((option) => option.value === sortParam) ? sortParam : DEFAULT_SORT;
   const [sortField, order] = sort.split(':') as [SortField, 'asc' | 'desc'];
@@ -63,6 +72,7 @@ function useMemberFilters() {
     view,
     accountStatus: isStatus(status) ? status : undefined,
     accessBlocked: access === 'blocked' ? 'true' : undefined,
+    membershipStatus: isMembershipFilter(membership) ? membership : undefined,
     sort: sortField,
     order,
   };
@@ -92,7 +102,7 @@ function MemberRow({ member }: { member: MemberSummaryDto }) {
     <li>
       <Link
         to={`/members/${member.id}`}
-        className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 px-4 py-3.5 transition-colors duration-150 hover:bg-surface-hover focus-visible:-outline-offset-2 sm:px-5 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)_16px]"
+        className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 px-4 py-3.5 transition-colors duration-150 hover:bg-surface-hover focus-visible:-outline-offset-2 sm:px-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_16px]"
       >
         <span className={cn('flex min-w-0 items-center gap-3', member.archivedAt && 'opacity-70')}>
           <MemberAvatar member={member} />
@@ -107,6 +117,16 @@ function MemberRow({ member }: { member: MemberSummaryDto }) {
           {formatPhone(member.phone)}
         </span>
         <span className="col-span-2 flex flex-wrap items-center gap-x-3 gap-y-1 pl-11 text-13 text-fg-muted lg:contents">
+          {member.currentMembership ? (
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="truncate text-fg-secondary">
+                {member.currentMembership.planName}
+              </span>
+              <MembershipStatusBadge status={member.currentMembership.effectiveStatus} />
+            </span>
+          ) : (
+            <span>No membership</span>
+          )}
           <MemberStatusBadges member={member} />
           <span className="tabular-nums lg:text-fg-secondary">
             <span className="lg:hidden">Registered </span>
@@ -128,7 +148,11 @@ export function MembersListPage() {
   const { query, sort, update, creating } = useMemberFilters();
   const list = useMemberList(query);
   const filtered = Boolean(
-    query.q || query.accountStatus || query.accessBlocked || query.view !== 'current',
+    query.q ||
+    query.accountStatus ||
+    query.accessBlocked ||
+    query.membershipStatus ||
+    query.view !== 'current',
   );
 
   const setSearch = useCallback((q: string) => update({ q }), [update]);
@@ -158,7 +182,7 @@ export function MembersListPage() {
               placeholder="Name, code, phone or email"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:ml-auto lg:flex">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 lg:ml-auto lg:flex">
             <Select
               aria-label="Show"
               value={query.view}
@@ -174,12 +198,26 @@ export function MembersListPage() {
               ))}
             </Select>
             <Select
+              aria-label="Filter by membership"
+              value={query.membershipStatus ?? ''}
+              onChange={(event) => update({ membership: event.target.value })}
+              className="lg:w-40"
+            >
+              <option value="">Any membership</option>
+              {MEMBERSHIP_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  Membership {MEMBERSHIP_STATUS_LABELS[status].toLowerCase()}
+                </option>
+              ))}
+              <option value="NONE">No membership</option>
+            </Select>
+            <Select
               aria-label="Filter by account status"
               value={query.accountStatus ?? ''}
               onChange={(event) => update({ status: event.target.value })}
               className="lg:w-36"
             >
-              <option value="">Any status</option>
+              <option value="">Any account</option>
               {MEMBER_ACCOUNT_STATUSES.map((status) => (
                 <option key={status} value={status}>
                   {MEMBER_ACCOUNT_STATUS_LABELS[status]}
@@ -214,11 +252,12 @@ export function MembersListPage() {
 
         <div
           aria-hidden
-          className="hidden grid-cols-[minmax(0,2.2fr)_minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)_16px] gap-x-4 border-b border-border bg-surface-muted/60 px-5 py-2 text-xs font-medium tracking-wide text-fg-muted uppercase lg:grid"
+          className="hidden grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_16px] gap-x-4 border-b border-border bg-surface-muted/60 px-5 py-2 text-xs font-medium tracking-wide text-fg-muted uppercase lg:grid"
         >
           <span>Member</span>
           <span>Phone</span>
-          <span>Status</span>
+          <span>Membership</span>
+          <span>Account</span>
           <span>Registered</span>
           <span />
         </div>
@@ -237,7 +276,9 @@ export function MembersListPage() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => update({ q: null, status: null, access: null, view: null })}
+                  onClick={() =>
+                    update({ q: null, status: null, access: null, membership: null, view: null })
+                  }
                 >
                   Clear filters
                 </Button>
