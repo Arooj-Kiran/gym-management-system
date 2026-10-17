@@ -1,6 +1,6 @@
 # Gym Management System — Implementation Plan (Stage 0)
 
-> Status: **APPROVED (2026-10-14).** Decisions D1–D8 approved; change requests C1–C2 incorporated. Stage 1 approved; Stage 2 complete and awaiting approval (see Section 11).
+> Status: **APPROVED (2026-10-14).** Decisions D1–D8 approved; change requests C1–C2 incorporated. Stages 1–2 approved; Stage 3 in progress (see Section 11).
 > Priority order (from docs/RULES.md): security and the biometric authorization rule → correctness → rules → this plan → requirements → speed.
 
 ## Contents
@@ -1165,8 +1165,8 @@ Access control (Stage 4) is deliberately placed **before** payments, because it 
 |---|---|---|---|---|
 | 0 | Planning (this document) | **Done** | 2026-10-14 | D1–D8 approved; C1 (activation policy) and C2 (duplicate phone warning) incorporated |
 | 1 | Foundation | **Done** | 2026-10-14 | Exit gate passed 2026-10-14: lint 0 problems, typecheck 0 errors, `npm test` 230/230 (shared 69, server 138, web 23; corrected from 229 on 2026-10-17), `npm run test:e2e` 14/14; server + web start, `/health/ready` reports the database OK. Re-run before approval: same results; `gym_dev` row counts identical before and after the E2E run. |
-| 2 | Members and membership plans | **Complete, awaiting approval** | — | Exit gate passed 2026-10-17: lint 0 problems, typecheck 0 errors, format check clean, `npm test` 473/473 (shared 85, server 359, web 29), `npm run test:e2e` 23/23 (against `gym_test` only). Migrations 0002–0003 applied to `gym_dev`; server + web start. |
-| 3 | Membership lifecycle and history | Not started | — | |
+| 2 | Members and membership plans | **Done** | 2026-10-17 | Exit gate passed 2026-10-17: lint 0 problems, typecheck 0 errors, format check clean, `npm test` 473/473 (shared 85, server 359, web 29), `npm run test:e2e` 23/23 (against `gym_test` only). Migrations 0002–0003 applied to `gym_dev`; server + web start. |
+| 3 | Membership lifecycle and history | In progress | — | |
 | 4 | Attendance and biometric access control (SIMULATED) | Not started | — | |
 | 5 | Payments and billing | Not started | — | |
 | 6 | Staff, trainers, schedules, classes and appointments | Not started | — | |
@@ -1201,5 +1201,5 @@ Access control (Stage 4) is deliberately placed **before** payments, because it 
 | 2026-10-14 | Stage 1: local databases — the user created `gym_dev` and `gym_test`; the least-privilege `gym_app` role (LOGIN, no superuser / createdb / createrole) was created as their owner with a generated password written only to `.env`; extensions `pgcrypto`, `citext`, `pg_trgm`, `btree_gist` installed | User |
 | 2026-10-14 | Stage 1: `docs/` excluded from Prettier so the hand-written requirements, rules and plan are never reformatted | — (tooling only) |
 | 2026-10-17 | Stage 2: §11 Stage 1 test total corrected from 229 to 230 (69 + 138 + 23) | — (record fix) |
-| 2026-10-17 | Stage 2: added `GET · POST /me/profile/photo` (a member views and replaces their own photo through an authorized route, as §4.10 allows photo edits). `/members/check-duplicate` also accepts `firstName`/`lastName` so the form can flag a same-name + same-phone match before saving. | Pending (Stage 2 report) |
-| 2026-10-17 | Stage 2: one app shell with role-based navigation instead of a separate portal shell; members get My profile, Plans and My account. The DEMO DATA banner is shown on staff screens only. | Pending (Stage 2 report) |
+| 2026-10-17 | Stage 2: added `GET · POST /me/profile/photo` (a member views and replaces their own photo through an authorized route, as §4.10 allows photo edits). `/members/check-duplicate` also accepts `firstName`/`lastName` so the form can flag a same-name + same-phone match before saving. | User (with the Stage 2 report) |
+| 2026-10-17 | Stage 2: one app shell with role-based navigation instead of a separate portal shell; members get My profile, Plans and My account. The DEMO DATA banner is shown on staff screens only. | User (with the Stage 2 report) |
