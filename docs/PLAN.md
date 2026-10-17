@@ -1,6 +1,6 @@
 # Gym Management System — Implementation Plan (Stage 0)
 
-> Status: **APPROVED (2026-10-14).** Decisions D1–D8 approved; change requests C1–C2 incorporated. Stage 1 is done and awaiting approval (see Section 11).
+> Status: **APPROVED (2026-10-14).** Decisions D1–D8 approved; change requests C1–C2 incorporated. Stage 1 approved; Stage 2 complete and awaiting approval (see Section 11).
 > Priority order (from docs/RULES.md): security and the biometric authorization rule → correctness → rules → this plan → requirements → speed.
 
 ## Contents
@@ -1164,8 +1164,8 @@ Access control (Stage 4) is deliberately placed **before** payments, because it 
 | Stage | Name | Status | Approved | Notes |
 |---|---|---|---|---|
 | 0 | Planning (this document) | **Done** | 2026-10-14 | D1–D8 approved; C1 (activation policy) and C2 (duplicate phone warning) incorporated |
-| 1 | Foundation | **Done — awaiting approval** | — | Exit gate passed 2026-10-14: lint 0 problems, typecheck 0 errors, `npm test` 229/229 (shared 69, server 138, web 23), `npm run test:e2e` 14/14; server + web start, `/health/ready` reports the database OK. Re-run before approval: same results; `gym_dev` row counts identical before and after the E2E run. |
-| 2 | Members and membership plans | Not started | — | |
+| 1 | Foundation | **Done** | 2026-10-14 | Exit gate passed 2026-10-14: lint 0 problems, typecheck 0 errors, `npm test` 230/230 (shared 69, server 138, web 23; corrected from 229 on 2026-10-17), `npm run test:e2e` 14/14; server + web start, `/health/ready` reports the database OK. Re-run before approval: same results; `gym_dev` row counts identical before and after the E2E run. |
+| 2 | Members and membership plans | **Complete, awaiting approval** | — | Exit gate passed 2026-10-17: lint 0 problems, typecheck 0 errors, format check clean, `npm test` 473/473 (shared 85, server 359, web 29), `npm run test:e2e` 23/23 (against `gym_test` only). Migrations 0002–0003 applied to `gym_dev`; server + web start. |
 | 3 | Membership lifecycle and history | Not started | — | |
 | 4 | Attendance and biometric access control (SIMULATED) | Not started | — | |
 | 5 | Payments and billing | Not started | — | |
@@ -1177,12 +1177,16 @@ Access control (Stage 4) is deliberately placed **before** payments, because it 
 
 | # | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Status | — | — | — | — | — | — | — | — | — | — | — | — | Partial (1) | Shell (1) | — | — |
+| Status | **Pass (2)** | Partial (2) | — | — | — | — | — | — | — | — | — | Partial (2) | Partial (1–2) | Partial (1–2) | — | Partial (2) |
 
 (Each cell becomes **Pass** with the stage number once its automated tests pass.)
 
-- **13 — Partial (1):** the table-driven matrix test covers every Stage 1 route × all 5 roles (403 when not allowed) plus 401 when signed out; missing CSRF → 403; a deactivated user's session → 401; only the Admin can change roles, never their own; role-aware navigation component test. Grows with each stage's routes.
-- **14 — Shell (1):** Playwright at 360×800, 768×1024 and 1280×800 on login, dashboard, staff, settings, audit log and account: no horizontal overflow, sidebar ≥ 1024px and drawer below (opens, navigates, closes on Escape), zero axe WCAG 2.1 A/AA violations. Member, payment, kiosk and portal pages and the keyboard-only payment flow come in their stages (full pass: Stage 8).
+- **1 — Pass (2):** every clause in §8.2 is covered in `members.test.ts` (GM- code, duplicate email hard block, duplicate phone warning → override with reason → one audit row, reason required, same-name flag, phone change on update, Trainer/Member 403, validation, archived email re-use, search/sort/filter/pagination); E2E: the receptionist registers a member through the form, including the shared-phone override and a photo upload.
+- **2 — Partial (2):** plan part only (all 5 types, duration/price/access validation, archive). Assignment comes in Stage 3.
+- **12 — Partial (2):** members part — member A gets 403 on B's `/members/:id`, photo and every staff member route; `/me/profile` returns only A's row and ignores any id in the request; trainers see no members until Stage 6 assignments. Payments, attendance and bookings follow in their stages.
+- **16 — Partial (2):** dashboard member cards (current members, registered today in gym time) asserted against raw SQL counts; recent member activity carries no personal field values.
+- **13 — Partial (1–2):** the table-driven matrix test covers every Stage 1 route × all 5 roles (403 when not allowed) plus every Stage 2 members and plans route (Stage 2), plus 401 when signed out; missing CSRF → 403; a deactivated user's session → 401; only the Admin can change roles, never their own; role-aware navigation component test. Grows with each stage's routes.
+- **14 — Partial (1–2):** Playwright at 360×800, 768×1024 and 1280×800 on login, dashboard, members list, member detail, plans, staff, settings, audit log, account and the member portal (profile, plans); each screen must also load without an error state: no horizontal overflow, sidebar ≥ 1024px and drawer below (opens, navigates, closes on Escape), zero axe WCAG 2.1 A/AA violations. Axe also runs on the register-member and plan dialogs. Payment and kiosk pages and the keyboard-only payment flow come in their stages (full pass: Stage 8).
 
 **Plan change log:**
 
@@ -1192,7 +1196,10 @@ Access control (Stage 4) is deliberately placed **before** payments, because it 
 | 2026-10-14 | D1–D8 approved. D5 set to `Asia/Karachi` / `PKR`. D7 confirmed (PostgreSQL 17.11). | User |
 | 2026-10-14 | C1: activation allowed with an outstanding balance; Admin-only setting "require full payment before activation" (default OFF, audit-logged) | User |
 | 2026-10-14 | C2: duplicate phone becomes an overridable warning (reason required, audit-logged); duplicate email stays blocked | User |
-| 2026-10-14 | Stage 1: small supporting dependencies added — `cors` (API), `concurrently` (root `npm run dev`), `@fontsource-variable/inter` (self-hosted Inter font, no external font CDN); TypeScript pinned to `~6.0`. No change to the approved stack. | Pending (listed in Stage 1 report) |
+| 2026-10-14 | Stage 1: small supporting dependencies added — `cors` (API), `concurrently` (root `npm run dev`), `@fontsource-variable/inter` (self-hosted Inter font, no external font CDN); TypeScript pinned to `~6.0`. No change to the approved stack. | User (with the Stage 1 report) |
 | 2026-10-14 | Stage 1: Playwright Chromium browser installed for E2E tests | User |
 | 2026-10-14 | Stage 1: local databases — the user created `gym_dev` and `gym_test`; the least-privilege `gym_app` role (LOGIN, no superuser / createdb / createrole) was created as their owner with a generated password written only to `.env`; extensions `pgcrypto`, `citext`, `pg_trgm`, `btree_gist` installed | User |
 | 2026-10-14 | Stage 1: `docs/` excluded from Prettier so the hand-written requirements, rules and plan are never reformatted | — (tooling only) |
+| 2026-10-17 | Stage 2: §11 Stage 1 test total corrected from 229 to 230 (69 + 138 + 23) | — (record fix) |
+| 2026-10-17 | Stage 2: added `GET · POST /me/profile/photo` (a member views and replaces their own photo through an authorized route, as §4.10 allows photo edits). `/members/check-duplicate` also accepts `firstName`/`lastName` so the form can flag a same-name + same-phone match before saving. | Pending (Stage 2 report) |
+| 2026-10-17 | Stage 2: one app shell with role-based navigation instead of a separate portal shell; members get My profile, Plans and My account. The DEMO DATA banner is shown on staff screens only. | Pending (Stage 2 report) |

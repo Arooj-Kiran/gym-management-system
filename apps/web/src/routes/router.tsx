@@ -6,10 +6,15 @@ import { ChangePasswordPage } from '../features/auth/change-password-page';
 import { LoginPage } from '../features/auth/login-page';
 import { DashboardPage } from '../features/dashboard/dashboard-page';
 import { NotFoundPage, RouteErrorPage } from '../features/errors/error-pages';
+import { MemberDetailPage } from '../features/members/member-detail-page';
+import { MembersListPage } from '../features/members/members-list-page';
+import { PlansPage } from '../features/plans/plans-page';
+import { PortalPlansPage } from '../features/portal/portal-plans-page';
+import { PortalProfilePage } from '../features/portal/portal-profile-page';
 import { SettingsPage } from '../features/settings/settings-page';
 import { StaffDetailPage } from '../features/staff/staff-detail-page';
 import { StaffListPage } from '../features/staff/staff-list-page';
-import { RequireAuth, RequirePermission, RequireStaff } from './guards';
+import { RequireAuth, RequireMember, RequirePermission, RequireStaff } from './guards';
 
 export const routes = [
   {
@@ -25,9 +30,27 @@ export const routes = [
             children: [
               { path: '/account', element: <AccountPage /> },
               {
+                element: <RequireMember />,
+                children: [
+                  { path: '/portal', element: <PortalProfilePage /> },
+                  { path: '/portal/plans', element: <PortalPlansPage /> },
+                ],
+              },
+              {
                 element: <RequireStaff />,
                 children: [
                   { index: true, element: <DashboardPage /> },
+                  {
+                    element: <RequirePermission permission="members:read" fullScope />,
+                    children: [
+                      { path: '/members', element: <MembersListPage /> },
+                      { path: '/members/:id', element: <MemberDetailPage /> },
+                    ],
+                  },
+                  {
+                    element: <RequirePermission permission="plans:read" />,
+                    children: [{ path: '/plans', element: <PlansPage /> }],
+                  },
                   {
                     element: <RequirePermission permission="staff:read" />,
                     children: [

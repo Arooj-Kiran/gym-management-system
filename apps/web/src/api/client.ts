@@ -13,6 +13,8 @@ export class ApiError extends Error {
     readonly code: string,
     message: string,
     readonly details: FieldError[] = [],
+    /** Machine-readable extras, e.g. `matches` on DUPLICATE_PHONE_WARNING. */
+    readonly extra: Record<string, unknown> = {},
   ) {
     super(message);
     this.name = 'ApiError';
@@ -53,6 +55,8 @@ function buildUrl(path: string, query?: Query) {
 interface RequestOptions {
   query?: Query;
   body?: unknown;
+  /** Multipart upload; the browser sets the boundary header itself. */
+  form?: FormData;
   /** The session probe handles 401 itself instead of triggering a global sign-out. */
   silent401?: boolean;
   signal?: AbortSignal;
@@ -60,7 +64,7 @@ interface RequestOptions {
 
 async function request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  if (options.body !== undefined && !options.form) headers['Content-Type'] = 'application/json';
   if (method !== 'GET' && csrfToken) headers['X-CSRF-Token'] = csrfToken;
 
   let response: Response;
@@ -69,7 +73,7 @@ async function request<T>(method: string, path: string, options: RequestOptions 
       method,
       headers,
       credentials: 'same-origin',
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body: options.form ?? (options.body === undefined ? undefined : JSON.stringify(options.body)),
       signal: options.signal,
     });
   } catch (error) {
@@ -86,11 +90,13 @@ async function request<T>(method: string, path: string, options: RequestOptions 
   const payload: unknown = await response.json().catch(() => null);
   if (!response.ok) {
     const body = (payload as ApiErrorBody | null)?.error;
+    const { code, message, details, ...extra } = body ?? {};
     const error = new ApiError(
       response.status,
-      body?.code ?? 'HTTP_ERROR',
-      body?.message ?? `The server answered with an error (${response.status}).`,
-      body?.details ?? [],
+      code ?? 'HTTP_ERROR',
+      message ?? `The server answered with an error (${response.status}).`,
+      details ?? [],
+      extra,
     );
     if (response.status === 401 && !options.silent401) onUnauthenticated?.();
     throw error;
@@ -103,6 +109,7 @@ export const api = {
     request<T>('GET', path, options),
   post: <T = void>(path: string, body?: unknown) => request<T>('POST', path, { body: body ?? {} }),
   patch: <T>(path: string, body: unknown) => request<T>('PATCH', path, { body }),
+  upload: <T>(path: string, form: FormData) => request<T>('POST', path, { form }),
 };
 
 /** Human-friendly message for toasts and inline errors. */

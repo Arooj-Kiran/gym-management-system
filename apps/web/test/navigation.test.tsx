@@ -5,11 +5,12 @@ import { SidebarContent } from '../src/components/layout/sidebar';
 import { fakeMe, renderWithProviders } from './render';
 
 const NAV: Record<Role, string[]> = {
-  ADMIN: ['Dashboard', 'Staff', 'Audit log', 'Settings', 'My account'],
-  MANAGER: ['Dashboard', 'Staff', 'Settings', 'My account'],
-  RECEPTIONIST: ['Dashboard', 'My account'],
+  ADMIN: ['Dashboard', 'Members', 'Plans', 'Staff', 'Audit log', 'Settings', 'My account'],
+  MANAGER: ['Dashboard', 'Members', 'Plans', 'Staff', 'Settings', 'My account'],
+  RECEPTIONIST: ['Dashboard', 'Members', 'Plans', 'My account'],
+  // Trainers only see assigned members (Stage 6), so the whole-gym list stays hidden.
   TRAINER: ['Dashboard', 'My account'],
-  MEMBER: ['My account'],
+  MEMBER: ['My profile', 'Plans', 'My account'],
 };
 
 describe('role-aware navigation', () => {

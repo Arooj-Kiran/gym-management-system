@@ -27,7 +27,8 @@
     "db:setup": "npm run db:setup -w @gms/server",
     "db:generate": "npm run db:generate -w @gms/server",
     "db:migrate": "npm run db:migrate -w @gms/server",
-    "db:seed": "npm run db:seed -w @gms/server"
+    "db:seed": "npm run db:seed -w @gms/server",
+    "db:seed:demo": "npm run db:seed:demo -w @gms/server"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

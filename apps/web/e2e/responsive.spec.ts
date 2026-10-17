@@ -1,11 +1,26 @@
 import { expect, test } from '@playwright/test';
-import { expectNoAxeViolations, expectNoHorizontalOverflow, signInAs, VIEWPORTS } from './helpers';
+import {
+  expectNoAxeViolations,
+  expectNoHorizontalOverflow,
+  MEMBER,
+  signInAs,
+  signInAsMember,
+  VIEWPORTS,
+} from './helpers';
 
 const ADMIN_PAGES = [
   { path: '/', heading: /Good (morning|afternoon|evening)/ },
+  { path: '/members', heading: 'Members' },
+  { path: '/plans', heading: 'Membership plans' },
   { path: '/staff', heading: 'Staff' },
   { path: '/settings', heading: 'Settings' },
   { path: '/audit-log', heading: 'Audit log' },
+  { path: '/account', heading: 'My account' },
+];
+
+const PORTAL_PAGES = [
+  { path: '/portal', heading: 'My profile' },
+  { path: '/portal/plans', heading: 'Membership plans' },
   { path: '/account', heading: 'My account' },
 ];
 
@@ -29,12 +44,40 @@ for (const viewport of VIEWPORTS) {
         await expect(page.getByRole('heading', { level: 1 })).toHaveText(heading);
         // Wait for data so skeletons are not what gets scanned.
         await expect(page.getByRole('status', { name: /loading/i })).toHaveCount(0);
+        // A load failure must not pass as a rendered screen.
+        await expect(page.getByRole('alert')).toHaveCount(0);
         await expectNoHorizontalOverflow(page);
 
         await expect(page.getByTestId('sidebar')).toBeVisible({ visible: desktop });
         await expect(page.getByRole('button', { name: 'Open navigation' })).toBeVisible({
           visible: !desktop,
         });
+        await expectNoAxeViolations(page);
+      }
+    });
+
+    test('member detail fits and is accessible', async ({ page }) => {
+      await signInAs(page, 'ADMIN');
+      await page.goto('/members');
+      const name = `${MEMBER.firstName} ${MEMBER.lastName}`;
+      await page.getByRole('link', { name: new RegExp(name) }).click();
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(name);
+      await expect(page.getByRole('status', { name: /loading/i })).toHaveCount(0);
+      // A load failure must not pass as a rendered screen.
+      await expect(page.getByRole('alert')).toHaveCount(0);
+      await expectNoHorizontalOverflow(page);
+      await expectNoAxeViolations(page);
+    });
+
+    test('member portal screens fit and are accessible', async ({ page }) => {
+      await signInAsMember(page);
+      for (const { path, heading } of PORTAL_PAGES) {
+        await page.goto(path);
+        await expect(page.getByRole('heading', { level: 1 })).toHaveText(heading);
+        await expect(page.getByRole('status', { name: /loading/i })).toHaveCount(0);
+        // A load failure must not pass as a rendered screen.
+        await expect(page.getByRole('alert')).toHaveCount(0);
+        await expectNoHorizontalOverflow(page);
         await expectNoAxeViolations(page);
       }
     });

@@ -20,6 +20,7 @@ export function errorHandler(logger: Logger): ErrorRequestHandler {
           code: error.code,
           message: error.message,
           ...(error.details ? { details: error.details } : {}),
+          ...error.extra,
         },
       });
       return;

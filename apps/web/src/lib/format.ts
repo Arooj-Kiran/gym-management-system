@@ -50,3 +50,20 @@ export function formatPhone(e164: string | null | undefined) {
   const pk = /^\+92(\d{3})(\d{7})$/.exec(e164);
   return pk ? `+92 ${pk[1]} ${pk[2]}` : e164;
 }
+
+/** Money is stored in minor units (paisa for PKR); whole amounts are shown without decimals. */
+export function formatMoney(minor: number, currencyCode: string) {
+  const major = minor / 100;
+  return new Intl.NumberFormat('en-PK', {
+    style: 'currency',
+    currency: currencyCode,
+    currencyDisplay: 'code',
+    minimumFractionDigits: Number.isInteger(major) ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(major);
+}
+
+/** Today's calendar date in the gym's timezone, as YYYY-MM-DD (used for date input limits). */
+export function gymTodayIso(timeZone = DEFAULT_TZ) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date());
+}

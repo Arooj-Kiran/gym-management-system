@@ -3,7 +3,9 @@ import { Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import { useSession } from '../../lib/auth';
+import { isStaffRole } from '@gms/shared';
 import { Avatar } from '../ui/avatar';
+import { DemoDataBanner } from './demo-data-banner';
 import { BrandMark, SidebarContent } from './sidebar';
 import { UserMenu } from './user-menu';
 
@@ -83,6 +85,8 @@ export function AppShell() {
           }
         />
       </header>
+
+      {session.gym.hasDemoData && isStaffRole(session.user.role) && <DemoDataBanner />}
 
       <main id="main" tabIndex={-1} className="focus:outline-none lg:pl-64">
         <div className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">

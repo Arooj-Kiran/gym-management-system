@@ -1,16 +1,12 @@
 import type { AuditAction, AuditLogDto, auditListQuerySchema } from '@gms/shared';
 import { and, asc, count, desc, eq, gte, ilike, lt, or, sql, type SQL } from 'drizzle-orm';
 import type { z } from 'zod';
-import { config } from '../../config/env';
 import { db } from '../../db/client';
 import { auditLogs, users } from '../../db/schema';
+import { gymDayStart } from '../../lib/dates';
 import { likePattern, pageOffset, paginated } from '../../lib/pagination';
 
 type AuditListQuery = z.output<typeof auditListQuerySchema>;
-
-/** Start of a calendar day in the gym's timezone, as timestamptz. */
-const gymDayStart = (isoDate: string, offsetDays = 0) =>
-  sql`((${isoDate}::date + ${offsetDays}::int)::timestamp at time zone ${config.gymTimezone})`;
 
 export async function listAuditLogs(query: AuditListQuery) {
   const filters: (SQL | undefined)[] = [];

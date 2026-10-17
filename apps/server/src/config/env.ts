@@ -2,7 +2,8 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
 
-const ROOT_ENV_FILE = path.resolve(import.meta.dirname, '../../../../.env');
+const REPO_ROOT = path.resolve(import.meta.dirname, '../../../..');
+const ROOT_ENV_FILE = path.join(REPO_ROOT, '.env');
 
 if (existsSync(ROOT_ENV_FILE)) process.loadEnvFile(ROOT_ENV_FILE);
 
@@ -41,6 +42,8 @@ const envSchema = z.object({
   ACCOUNT_LOCKOUT_MINUTES: positiveInt(15),
   GYM_TIMEZONE: timezone,
   CURRENCY_CODE: z.string().regex(/^[A-Z]{3}$/, 'must be an ISO 4217 code such as PKR'),
+  UPLOAD_DIR: z.string().min(1).default('./uploads'),
+  MAX_UPLOAD_MB: z.coerce.number().positive().max(50).default(2),
 });
 
 export class ConfigError extends Error {}
@@ -101,6 +104,9 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env) {
     accountLockoutMinutes: env.ACCOUNT_LOCKOUT_MINUTES,
     gymTimezone: env.GYM_TIMEZONE,
     currencyCode: env.CURRENCY_CODE,
+    /** Relative paths resolve from the repository root, never from the process cwd. */
+    uploadDir: path.resolve(REPO_ROOT, env.UPLOAD_DIR),
+    maxUploadBytes: Math.round(env.MAX_UPLOAD_MB * 1024 * 1024),
   };
 }
 

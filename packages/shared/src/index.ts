@@ -6,3 +6,7 @@ export * from './schemas/auth';
 export * from './schemas/staff';
 export * from './schemas/settings';
 export * from './schemas/audit';
+export * from './schemas/members';
+export * from './schemas/plans';
+export * from './schemas/portal';
+export * from './schemas/dashboard';

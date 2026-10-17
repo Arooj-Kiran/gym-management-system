@@ -27,6 +27,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ENTITY_LABELS: Record<AuditEntityType, string> = {
   USER: 'User accounts',
   GYM_SETTINGS: 'Gym settings',
+  MEMBER: 'Members',
+  MEMBERSHIP_PLAN: 'Membership plans',
 };
 
 function useAuditFilters() {

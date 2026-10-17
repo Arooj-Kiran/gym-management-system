@@ -11,6 +11,8 @@ export class AppError extends Error {
     readonly code: ErrorCode,
     message: string,
     readonly details?: ErrorDetail[],
+    /** Extra machine-readable fields for the client, e.g. the members a duplicate matched. */
+    readonly extra?: Record<string, unknown>,
   ) {
     super(message);
     this.name = 'AppError';
@@ -26,7 +28,8 @@ export const forbidden = (message = 'You do not have permission to do this.') =>
 export const notFound = (what = 'Resource') =>
   new AppError(404, ERROR_CODES.NOT_FOUND, `${what} not found.`);
 
-export const conflict = (code: ErrorCode, message: string) => new AppError(409, code, message);
+export const conflict = (code: ErrorCode, message: string, extra?: Record<string, unknown>) =>
+  new AppError(409, code, message, undefined, extra);
 
 export const validationFailed = (details: ErrorDetail[], message = 'Some fields are invalid.') =>
   new AppError(400, ERROR_CODES.VALIDATION_FAILED, message, details);

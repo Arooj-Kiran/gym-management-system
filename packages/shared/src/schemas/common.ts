@@ -26,6 +26,14 @@ export const passwordSchema = z
   .min(PASSWORD_MIN_LENGTH, `Use at least ${PASSWORD_MIN_LENGTH} characters`)
   .max(PASSWORD_MAX_LENGTH, `Use at most ${PASSWORD_MAX_LENGTH} characters`);
 
+const INVALID_PHONE = 'Enter a valid phone number, e.g. +92 300 1234567';
+
+/** Normalize to E.164 so the same number always compares equal (duplicate detection). */
+export function normalizePhone(value: string): string | null {
+  const parsed = parsePhoneNumberFromString(value, DEFAULT_PHONE_COUNTRY);
+  return parsed?.isValid() ? parsed.number : null;
+}
+
 /** Optional phone: empty → null, otherwise normalized to E.164. */
 export const optionalPhoneSchema = z
   .string()
@@ -34,13 +42,34 @@ export const optionalPhoneSchema = z
   .nullish()
   .transform((value, ctx) => {
     if (!value) return null;
-    const parsed = parsePhoneNumberFromString(value, DEFAULT_PHONE_COUNTRY);
-    if (!parsed?.isValid()) {
-      ctx.addIssue({ code: 'custom', message: 'Enter a valid phone number, e.g. +92 300 1234567' });
+    const normalized = normalizePhone(value);
+    if (!normalized) {
+      ctx.addIssue({ code: 'custom', message: INVALID_PHONE });
       return z.NEVER;
     }
-    return parsed.number;
+    return normalized;
   });
+
+/** Required phone, normalized to E.164. */
+export const phoneSchema = z
+  .string({ error: 'Phone number is required' })
+  .trim()
+  .min(1, 'Phone number is required')
+  .max(32, 'Phone number is too long')
+  .transform((value, ctx) => {
+    const normalized = normalizePhone(value);
+    if (!normalized) {
+      ctx.addIssue({ code: 'custom', message: INVALID_PHONE });
+      return z.NEVER;
+    }
+    return normalized;
+  });
+
+/** Optional email: empty → null, otherwise validated and lower-cased. */
+export const optionalEmailSchema = z
+  .union([z.literal(''), emailSchema])
+  .nullish()
+  .transform((value) => value || null);
 
 export const optionalTextSchema = (max: number) =>
   z
@@ -58,6 +87,14 @@ export const optionalIsoDateSchema = z
   .transform((value) => value || null);
 
 export const reasonSchema = z.string().trim().max(500, 'Must be 500 characters or fewer');
+
+export const requiredReasonSchema = reasonSchema.min(
+  3,
+  'Give a short reason (at least 3 characters)',
+);
+
+/** Query-string booleans arrive as text. */
+export const queryBooleanSchema = z.enum(['true', 'false']).transform((value) => value === 'true');
 
 export const idParamSchema = z.strictObject({ id: z.uuid({ error: 'Invalid id' }) });
 

@@ -1,3 +1,5 @@
+import os from 'node:os';
+import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 
 // E2E runs against its own ports and the TEST database (never gym_dev), so a dev server can stay up.
@@ -35,6 +37,8 @@ export default defineConfig({
         LOG_LEVEL: 'warn',
         // Every test signs in; the real limit is covered by the API tests.
         LOGIN_RATE_LIMIT_MAX: '1000',
+        // Uploaded test photos stay out of the project's uploads folder.
+        UPLOAD_DIR: path.join(os.tmpdir(), 'gms-e2e-uploads'),
       },
     },
     {

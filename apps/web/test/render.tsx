@@ -20,7 +20,7 @@ export function fakeMe(role: Role, overrides: Partial<MeResponse['user']> = {}):
     },
     permissions: permissionsForRole(role),
     csrfToken: 'test-csrf',
-    gym: { name: 'Iron Valley Fitness' },
+    gym: { name: 'Iron Valley Fitness', currencyCode: 'PKR', hasDemoData: false },
   };
 }
 

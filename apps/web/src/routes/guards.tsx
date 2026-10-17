@@ -1,4 +1,4 @@
-import { isStaffRole, type Permission } from '@gms/shared';
+import { isStaffRole, permissionScope, type Permission } from '@gms/shared';
 import type { ReactNode } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router';
 import { ErrorState } from '../components/ui/states';
@@ -49,16 +49,29 @@ export function RequireAuth() {
   return <Outlet />;
 }
 
-export function RequirePermission({ permission }: { permission: Permission }) {
+/** `fullScope` also requires the unrestricted scope (e.g. trainers only see assigned members). */
+export function RequirePermission({
+  permission,
+  fullScope,
+}: {
+  permission: Permission;
+  fullScope?: boolean;
+}) {
   const can = useCan();
-  return can(permission) ? <Outlet /> : <ForbiddenPage />;
+  const me = useMe();
+  const allowed =
+    can(permission) &&
+    (!fullScope || (me.data && permissionScope(me.data.user.role, permission) === 'ALL'));
+  return allowed ? <Outlet /> : <ForbiddenPage />;
 }
 
 export function RequireStaff() {
   const me = useMe();
-  return me.data && isStaffRole(me.data.user.role) ? (
-    <Outlet />
-  ) : (
-    <Navigate to="/account" replace />
-  );
+  return me.data && isStaffRole(me.data.user.role) ? <Outlet /> : <Navigate to="/portal" replace />;
+}
+
+/** Portal screens; staff are sent to their dashboard. */
+export function RequireMember() {
+  const me = useMe();
+  return me.data?.user.role === 'MEMBER' ? <Outlet /> : <Navigate to="/" replace />;
 }

@@ -3,3 +3,5 @@ export * from './user-sessions';
 export * from './staff-profiles';
 export * from './audit-logs';
 export * from './gym-settings';
+export * from './members';
+export * from './membership-plans';

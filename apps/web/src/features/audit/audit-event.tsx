@@ -8,6 +8,8 @@ import { auditActorName, auditLabel, auditTone, displayValue, fieldLabel } from 
 const ENTITY_LABELS: Record<string, string> = {
   USER: 'User account',
   GYM_SETTINGS: 'Gym settings',
+  MEMBER: 'Member',
+  MEMBERSHIP_PLAN: 'Membership plan',
 };
 
 function Changes({ event }: { event: AuditLogDto }) {
@@ -114,6 +116,14 @@ export function AuditEvent({ event }: { event: AuditLogDto }) {
               className="inline-flex w-fit items-center gap-1 text-13 font-medium text-primary-text hover:underline"
             >
               Open account <ArrowRight className="size-3.5" aria-hidden />
+            </Link>
+          )}
+          {event.entityType === 'MEMBER' && event.entityId && (
+            <Link
+              to={`/members/${event.entityId}`}
+              className="inline-flex w-fit items-center gap-1 text-13 font-medium text-primary-text hover:underline"
+            >
+              Open member <ArrowRight className="size-3.5" aria-hidden />
             </Link>
           )}
         </div>

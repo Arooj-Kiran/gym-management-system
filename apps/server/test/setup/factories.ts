@@ -1,6 +1,6 @@
 import type { Role } from '@gms/shared';
 import { db } from '../../src/db/client';
-import { staffProfiles, users } from '../../src/db/schema';
+import { members, membershipPlans, staffProfiles, users } from '../../src/db/schema';
 import { hashPassword } from '../../src/lib/passwords';
 
 /** Fictional test password; only ever used against the throwaway test database. */
@@ -51,4 +51,40 @@ export async function createUser(
     .returning({ id: users.id });
   if (role !== 'MEMBER') await db.insert(staffProfiles).values({ userId: user!.id });
   return { id: user!.id, email, password, role };
+}
+
+let memberSequence = 0;
+
+/** Inserts a member directly (no duplicate checks); fictional data only. */
+export async function createMember(overrides: Partial<typeof members.$inferInsert> = {}) {
+  memberSequence += 1;
+  const [member] = await db
+    .insert(members)
+    .values({
+      firstName: 'Test',
+      lastName: `Member ${memberSequence}`,
+      phoneE164: `+92301${String(5_000_000 + memberSequence).padStart(7, '0')}`,
+      registrationDate: '2026-09-01',
+      ...overrides,
+    })
+    .returning();
+  return member!;
+}
+
+let planSequence = 0;
+
+export async function createPlan(overrides: Partial<typeof membershipPlans.$inferInsert> = {}) {
+  planSequence += 1;
+  const [plan] = await db
+    .insert(membershipPlans)
+    .values({
+      name: `Test Plan ${planSequence}`,
+      planType: 'MONTHLY',
+      durationValue: 1,
+      durationUnit: 'MONTH',
+      priceMinor: 500_000,
+      ...overrides,
+    })
+    .returning();
+  return plan!;
 }

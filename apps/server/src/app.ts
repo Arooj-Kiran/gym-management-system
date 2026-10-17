@@ -14,7 +14,11 @@ import { requestId } from './middleware/request-id';
 import { checkOrigin, loadSession } from './middleware/session';
 import { auditRoutes } from './modules/audit/audit.routes';
 import { authRoutes } from './modules/auth/auth.routes';
+import { dashboardRoutes } from './modules/dashboard/dashboard.routes';
 import { healthRoutes } from './modules/health/health.routes';
+import { membersRoutes } from './modules/members/members.routes';
+import { plansRoutes } from './modules/plans/plans.routes';
+import { portalRoutes } from './modules/portal/portal.routes';
 import { settingsRoutes } from './modules/settings/settings.routes';
 import { staffRoutes } from './modules/staff/staff.routes';
 
@@ -72,6 +76,10 @@ export function createApp(options: AppOptions = {}) {
   api.use('/staff', staffRoutes());
   api.use('/settings', settingsRoutes());
   api.use('/audit-logs', auditRoutes());
+  api.use('/members', membersRoutes());
+  api.use('/membership-plans', plansRoutes());
+  api.use('/me', portalRoutes());
+  api.use('/dashboard', dashboardRoutes());
   api.use(notFoundHandler);
   app.use('/api/v1', api);
   app.use('/api', notFoundHandler);

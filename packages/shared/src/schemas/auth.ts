@@ -40,5 +40,10 @@ export interface MeResponse {
   user: SessionUser;
   permissions: Permission[];
   csrfToken: string;
-  gym: { name: string };
+  gym: {
+    name: string;
+    currencyCode: string;
+    /** True while fictional demo records exist; the app shows a DEMO DATA banner. */
+    hasDemoData: boolean;
+  };
 }

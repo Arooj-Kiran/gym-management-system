@@ -1,13 +1,16 @@
-import { ROLE_LABELS } from '@gms/shared';
+import { permissionScope, ROLE_LABELS } from '@gms/shared';
 import {
   ArrowRight,
   CircleCheck,
   Circle,
+  Contact,
   History,
   KeyRound,
   ScrollText,
   Settings,
+  Tags,
   UserPlus,
+  UserRoundPlus,
   UsersRound,
   type LucideIcon,
 } from 'lucide-react';
@@ -22,8 +25,10 @@ import { cn } from '../../lib/cn';
 import { formatRelative } from '../../lib/format';
 import { useAuditLogs } from '../audit/audit-api';
 import { auditActorName, auditLabel, auditTone } from '../audit/audit-format';
+import { useMemberList } from '../members/members-api';
 import { useSettings } from '../settings/settings-api';
 import { useStaffList } from '../staff/staff-api';
+import { useDashboardActivity, useDashboardSummary } from './dashboard-api';
 
 function greeting(date = new Date()) {
   const hour = Number(
@@ -97,6 +102,115 @@ function Stat({
         </p>
       )}
       {hint && <p className="mt-1 text-13 text-fg-muted">{hint}</p>}
+    </Card>
+  );
+}
+
+function MemberStats({ total, registeredToday }: { total: number; registeredToday: number }) {
+  const blocked = useMemberList({ accessBlocked: 'true', pageSize: 1 });
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <Stat
+        label="Current members"
+        value={total}
+        loading={false}
+        hint="Archived records are not counted."
+      />
+      <Stat
+        label="Registered today"
+        value={registeredToday}
+        loading={false}
+        hint={registeredToday === 0 ? 'No new members yet today.' : 'By registration date.'}
+      />
+      <Stat
+        label="Entry blocked"
+        value={blocked.isError ? '—' : (blocked.data?.total ?? 0)}
+        loading={blocked.isPending}
+        hint={
+          blocked.data && blocked.data.total > 0 ? (
+            <Link to="/members?access=blocked" className="text-primary-text hover:underline">
+              Review blocked members
+            </Link>
+          ) : (
+            'Members stopped at the front desk.'
+          )
+        }
+      />
+    </div>
+  );
+}
+
+function MemberOverview() {
+  const summary = useDashboardSummary();
+  if (summary.isError)
+    return (
+      <Card>
+        <ErrorState error={summary.error} onRetry={() => summary.refetch()} />
+      </Card>
+    );
+  if (summary.isPending)
+    return (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Stat label="Current members" value={0} loading />
+        <Stat label="Registered today" value={0} loading />
+        <Stat label="Entry blocked" value={0} loading />
+      </div>
+    );
+  if (!summary.data.members) return null;
+  return <MemberStats {...summary.data.members} />;
+}
+
+function MemberActivity() {
+  const activity = useDashboardActivity();
+  return (
+    <Card>
+      <CardHeader
+        title="Recent member activity"
+        description="Registrations, profile changes and access decisions"
+        action={
+          <Link to="/members" className="text-13 font-medium text-primary-text hover:underline">
+            All members
+          </Link>
+        }
+      />
+      {activity.isPending ? (
+        <ListSkeleton rows={4} label="Loading member activity" />
+      ) : activity.isError ? (
+        <ErrorState error={activity.error} onRetry={() => activity.refetch()} />
+      ) : activity.data.length === 0 ? (
+        <EmptyState
+          icon={<Contact aria-hidden />}
+          title="No member activity yet"
+          description="Registrations and changes to member records show up here."
+        />
+      ) : (
+        <ul className="divide-y divide-border">
+          {activity.data.map((item) => (
+            <li
+              key={item.id}
+              className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 sm:px-5"
+            >
+              <Badge tone={auditTone(item.action)}>{auditLabel(item.action)}</Badge>
+              <span className="min-w-0 flex-1 truncate text-13 text-fg-secondary">
+                {item.member ? (
+                  <Link
+                    to={`/members/${item.member.id}`}
+                    className="font-medium text-fg hover:underline"
+                  >
+                    {item.member.firstName} {item.member.lastName}
+                  </Link>
+                ) : (
+                  'Unknown member'
+                )}
+                <span className="text-fg-muted"> · by {item.actorName ?? 'System'}</span>
+              </span>
+              <time dateTime={item.createdAt} className="text-13 text-fg-muted tabular-nums">
+                {formatRelative(item.createdAt)}
+              </time>
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   );
 }
@@ -239,7 +353,34 @@ export function DashboardPage() {
   const can = useCan();
   const role = session.user.role;
 
+  // Mirrors the server: whole-gym member figures need unscoped member access.
+  const seesMembers = permissionScope(role, 'members:read') === 'ALL';
+
   const actions: QuickAction[] = [];
+  if (seesMembers && can('members:create')) {
+    actions.push({
+      to: '/members?new=1',
+      label: 'Register a member',
+      description: 'Personal details, emergency contact and photo',
+      icon: UserRoundPlus,
+    });
+  }
+  if (seesMembers) {
+    actions.push({
+      to: '/members',
+      label: 'Members',
+      description: 'Search, filter and open member records',
+      icon: Contact,
+    });
+  }
+  if (can('plans:read')) {
+    actions.push({
+      to: '/plans',
+      label: can('plans:manage') ? 'Membership plans' : 'View membership plans',
+      description: 'Prices, durations, benefits and access hours',
+      icon: Tags,
+    });
+  }
   if (can('staff:manage')) {
     actions.push({
       to: '/staff?new=1',
@@ -291,20 +432,26 @@ export function DashboardPage() {
         }
         title={`${greeting()}, ${session.user.firstName}`}
         description={
-          can('staff:read')
-            ? 'Here is the current state of your team and recent account activity.'
-            : 'Your workspace. Member, check-in and class tools are added to this screen as they are switched on for the gym.'
+          seesMembers
+            ? 'Here is the current state of your members and recent front-desk activity.'
+            : 'Your workspace. Your assigned members, check-ins and classes are added to this screen as they are switched on for the gym.'
         }
       />
 
       <div className="flex flex-col gap-6">
+        {seesMembers && <MemberOverview />}
         {can('staff:read') && <StaffStats />}
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="flex flex-col gap-6">
             {can('settings:manage') && <SetupChecklist />}
             <QuickActions actions={actions} />
           </div>
-          {can('audit:read') && <RecentActivity />}
+          {(seesMembers || can('audit:read')) && (
+            <div className="flex flex-col gap-6">
+              {seesMembers && <MemberActivity />}
+              {can('audit:read') && <RecentActivity />}
+            </div>
+          )}
         </div>
       </div>
     </>

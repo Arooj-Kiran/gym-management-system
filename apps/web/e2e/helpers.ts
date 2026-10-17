@@ -6,6 +6,9 @@ export type FixtureRole = keyof typeof fixtures.users;
 export const PASSWORD = fixtures.password;
 export const USERS = fixtures.users;
 export const FORCED_CHANGE = fixtures.forcedChange;
+/** A member with a portal login; their phone is reused to trigger the duplicate-phone warning. */
+export const MEMBER = fixtures.member;
+export const PLAN = fixtures.plan;
 
 export const VIEWPORTS = [
   { name: 'mobile', width: 360, height: 800 },
@@ -28,6 +31,13 @@ export async function submitSignInForm(page: Page, email: string, password = PAS
 export async function signInAs(page: Page, role: FixtureRole) {
   await signIn(page, USERS[role].email);
   await expect(page.getByRole('heading', { level: 1 })).toContainText(USERS[role].firstName);
+}
+
+/** Members land on their portal profile. */
+export async function signInAsMember(page: Page) {
+  await signIn(page, MEMBER.email);
+  await expect(page).toHaveURL(/\/portal$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('My profile');
 }
 
 /** The page must never scroll sideways. */

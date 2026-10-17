@@ -1,18 +1,40 @@
 {
   "password": "E2e-fictional-pass-2026",
   "users": {
-    "ADMIN": { "email": "e2e.admin@example.test", "firstName": "Ayesha", "lastName": "Malik" },
-    "MANAGER": { "email": "e2e.manager@example.test", "firstName": "Hamza", "lastName": "Qureshi" },
+    "ADMIN": {
+      "email": "e2e.admin@example.test",
+      "firstName": "Ayesha",
+      "lastName": "Malik"
+    },
+    "MANAGER": {
+      "email": "e2e.manager@example.test",
+      "firstName": "Hamza",
+      "lastName": "Qureshi"
+    },
     "RECEPTIONIST": {
       "email": "e2e.reception@example.test",
       "firstName": "Sana",
       "lastName": "Iqbal"
     },
-    "TRAINER": { "email": "e2e.trainer@example.test", "firstName": "Usman", "lastName": "Tariq" }
+    "TRAINER": {
+      "email": "e2e.trainer@example.test",
+      "firstName": "Usman",
+      "lastName": "Tariq"
+    }
   },
   "forcedChange": {
     "email": "e2e.newstaff@example.test",
     "firstName": "Bilal",
     "lastName": "Ahmed"
+  },
+  "member": {
+    "email": "e2e.member@example.test",
+    "firstName": "Zara",
+    "lastName": "Hussain",
+    "phone": "+923001110001"
+  },
+  "plan": {
+    "name": "Standard Monthly",
+    "priceMinor": 600000
   }
 }

@@ -2,12 +2,12 @@ import { sql } from 'drizzle-orm';
 import { db } from '../../src/db/client';
 
 /**
- * Empty all Stage 1 tables between test files and restore default settings.
+ * Empty all tables between test files and restore default settings.
  * TRUNCATE is used on purpose: the append-only trigger blocks row-level UPDATE/DELETE only.
  */
 export async function resetTables() {
   await db.execute(
-    sql`truncate table audit_logs, user_sessions, staff_profiles, users restart identity cascade`,
+    sql`truncate table audit_logs, members, membership_plans, user_sessions, staff_profiles, users restart identity cascade`,
   );
   await db.execute(sql`
     update gym_settings set

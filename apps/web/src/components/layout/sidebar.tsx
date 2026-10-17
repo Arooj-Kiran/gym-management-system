@@ -1,4 +1,4 @@
-import { isStaffRole, ROLE_LABELS } from '@gms/shared';
+import { isStaffRole, permissionScope, ROLE_LABELS } from '@gms/shared';
 import { NavLink } from 'react-router';
 import { fullName, useCan, useSession } from '../../lib/auth';
 import { cn } from '../../lib/cn';
@@ -10,7 +10,10 @@ function useVisibleNav() {
   const { user } = useSession();
   const can = useCan();
   const visible = (item: NavItem) =>
-    (!item.staffOnly || isStaffRole(user.role)) && (!item.permission || can(item.permission));
+    (!item.staffOnly || isStaffRole(user.role)) &&
+    (!item.memberOnly || user.role === 'MEMBER') &&
+    (!item.permission || can(item.permission)) &&
+    (!item.fullScope || !item.permission || permissionScope(user.role, item.permission) === 'ALL');
   return NAV_SECTIONS.map((section) => ({
     ...section,
     items: section.items.filter(visible),

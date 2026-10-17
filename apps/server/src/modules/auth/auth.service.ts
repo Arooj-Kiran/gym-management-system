@@ -2,7 +2,7 @@ import { ERROR_CODES, permissionsForRole, type MeResponse } from '@gms/shared';
 import { eq, sql } from 'drizzle-orm';
 import { config } from '../../config/env';
 import { db } from '../../db/client';
-import { users } from '../../db/schema';
+import { members, users } from '../../db/schema';
 import { recordAudit } from '../../lib/audit';
 import { AppError, validationFailed } from '../../lib/errors';
 import { burnPasswordCheck, hashPassword, verifyPassword } from '../../lib/passwords';
@@ -146,8 +146,21 @@ export async function me(auth: Express.AuthContext): Promise<MeResponse> {
     },
     permissions: permissionsForRole(user.role),
     csrfToken: auth.csrfToken,
-    gym: { name: await getGymName() },
+    gym: {
+      name: await getGymName(),
+      currencyCode: config.currencyCode,
+      hasDemoData: await hasDemoData(),
+    },
   };
+}
+
+/** Drives the DEMO DATA banner: true while any fictional seed record exists. */
+async function hasDemoData(): Promise<boolean> {
+  const result = await db.execute<{ present: boolean }>(
+    sql`select (exists (select 1 from ${members} where ${members.isDemo})
+      or exists (select 1 from ${users} where ${users.isDemo})) as present`,
+  );
+  return result.rows[0]?.present ?? false;
 }
 
 /** Changing the password ends every other session of this user. */
