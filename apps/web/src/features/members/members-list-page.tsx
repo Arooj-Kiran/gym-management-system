@@ -118,8 +118,8 @@ function MemberRow({ member }: { member: MemberSummaryDto }) {
         </span>
         <span className="col-span-2 flex flex-wrap items-center gap-x-3 gap-y-1 pl-11 text-13 text-fg-muted lg:contents">
           {member.currentMembership ? (
-            <span className="flex min-w-0 items-center gap-2">
-              <span className="truncate text-fg-secondary">
+            <span className="flex min-w-0 items-center gap-2 lg:flex-col lg:items-start lg:gap-1">
+              <span className="max-w-full truncate text-fg-secondary">
                 {member.currentMembership.planName}
               </span>
               <MembershipStatusBadge status={member.currentMembership.effectiveStatus} />
@@ -173,8 +173,8 @@ export function MembersListPage() {
       />
 
       <Card>
-        <div className="flex flex-col gap-3 border-b border-border p-4 sm:px-5 lg:flex-row lg:items-center">
-          <div className="lg:max-w-xs lg:flex-1">
+        <div className="flex flex-col gap-3 border-b border-border p-4 sm:px-5">
+          <div className="sm:max-w-sm">
             <SearchInput
               value={query.q ?? ''}
               onChange={setSearch}
@@ -182,14 +182,13 @@ export function MembersListPage() {
               placeholder="Name, code, phone or email"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 lg:ml-auto lg:flex">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
             <Select
               aria-label="Show"
               value={query.view}
               onChange={(event) =>
                 update({ view: event.target.value === 'current' ? null : event.target.value })
               }
-              className="lg:w-48"
             >
               {VIEWS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -201,7 +200,6 @@ export function MembersListPage() {
               aria-label="Filter by membership"
               value={query.membershipStatus ?? ''}
               onChange={(event) => update({ membership: event.target.value })}
-              className="lg:w-40"
             >
               <option value="">Any membership</option>
               {MEMBERSHIP_STATUSES.map((status) => (
@@ -215,7 +213,6 @@ export function MembersListPage() {
               aria-label="Filter by account status"
               value={query.accountStatus ?? ''}
               onChange={(event) => update({ status: event.target.value })}
-              className="lg:w-36"
             >
               <option value="">Any account</option>
               {MEMBER_ACCOUNT_STATUSES.map((status) => (
@@ -228,7 +225,6 @@ export function MembersListPage() {
               aria-label="Filter by entry"
               value={query.accessBlocked ? 'blocked' : ''}
               onChange={(event) => update({ access: event.target.value })}
-              className="lg:w-36"
             >
               <option value="">Any entry</option>
               <option value="blocked">Entry blocked</option>
@@ -239,7 +235,6 @@ export function MembersListPage() {
               onChange={(event) =>
                 update({ sort: event.target.value === DEFAULT_SORT ? null : event.target.value })
               }
-              className="lg:w-44"
             >
               {SORT_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>

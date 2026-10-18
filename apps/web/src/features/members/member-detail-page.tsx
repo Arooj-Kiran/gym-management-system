@@ -5,7 +5,7 @@ import {
   type MemberDto,
   type UpdateMemberInput,
 } from '@gms/shared';
-import { Archive, ArrowLeft, History, UserX } from 'lucide-react';
+import { Archive, ArrowLeft, History, Ticket, UserX } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useParams, useSearchParams } from 'react-router';
@@ -253,7 +253,9 @@ export function MemberDetailPage() {
               <span className="font-mono text-13 text-fg-secondary">{record.memberCode}</span>
               <MemberStatusBadges member={record} />
               {record.currentMembership && (
-                <span className="inline-flex items-center gap-1.5 text-13 text-fg-secondary">
+                <span className="inline-flex min-w-0 items-center gap-1.5 text-13 text-fg-secondary">
+                  <Ticket className="size-3.5 shrink-0 text-fg-muted" aria-hidden />
+                  <span className="sr-only">Membership:</span>
                   <span className="truncate">{record.currentMembership.planName}</span>
                   <MembershipStatusBadge status={record.currentMembership.effectiveStatus} />
                 </span>

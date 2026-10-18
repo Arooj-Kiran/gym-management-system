@@ -149,8 +149,8 @@ export function MembershipsPage() {
       />
 
       <Card>
-        <div className="flex flex-col gap-3 border-b border-border p-4 sm:px-5 lg:flex-row lg:items-center">
-          <div className="lg:max-w-xs lg:flex-1">
+        <div className="flex flex-col gap-3 border-b border-border p-4 sm:px-5 xl:flex-row xl:items-center">
+          <div className="xl:max-w-xs xl:flex-1">
             <SearchInput
               value={query.q ?? ''}
               onChange={setSearch}
@@ -158,14 +158,14 @@ export function MembershipsPage() {
               placeholder="Member name, code or plan"
             />
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:ml-auto lg:flex">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:ml-auto xl:flex">
             <Select
               aria-label="Show"
               value={expiring === undefined ? '' : String(expiring)}
               onChange={(event) =>
                 update({ expiring: event.target.value, status: null, sort: null })
               }
-              className="lg:w-48"
+              className="xl:w-48"
             >
               <option value="">All memberships</option>
               {[...new Set([...EXPIRING_OPTIONS, ...(expiring ? [expiring] : [])])]
@@ -181,7 +181,7 @@ export function MembershipsPage() {
               value={query.status ?? ''}
               disabled={expiring !== undefined}
               onChange={(event) => update({ status: event.target.value })}
-              className="lg:w-40"
+              className="xl:w-40"
             >
               <option value="">Any status</option>
               {MEMBERSHIP_STATUSES.map((status) => (
@@ -196,7 +196,7 @@ export function MembershipsPage() {
               onChange={(event) =>
                 update({ sort: event.target.value === DEFAULT_SORT ? null : event.target.value })
               }
-              className="lg:w-44"
+              className="xl:w-44"
             >
               {SORT_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>

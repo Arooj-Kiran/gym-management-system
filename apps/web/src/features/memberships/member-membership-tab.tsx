@@ -209,7 +209,7 @@ function MembershipPanel({
               size="sm"
               variant={ACTION_META[action].variant}
               icon={ACTION_META[action].icon}
-              className={action === 'cancel' ? 'text-danger-text sm:ml-auto' : undefined}
+              className={action === 'cancel' ? 'text-danger-text! sm:ml-auto' : undefined}
               onClick={() => onAction(action, membership)}
             >
               {ACTION_META[action].label}
