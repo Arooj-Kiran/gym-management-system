@@ -7,6 +7,7 @@ import { gymToday } from '../../lib/dates';
 import type { RequestContext } from '../../lib/request-context';
 import { closeDb, db } from '../client';
 import { members, membershipPlans } from '../schema';
+import { seedAccessDemo } from './demo-access';
 
 /**
  * Fictional demo data (RULES: never real people). Members are flagged is_demo, which turns on
@@ -109,12 +110,14 @@ export async function seedDemo() {
     .from(members)
     .where(eq(members.isDemo, true))
     .limit(1);
+  const today = gymToday();
   if (existing) {
-    console.warn('Demo members already exist; nothing to seed.');
+    console.warn('Demo members already exist; member and plan demo skipped.');
+    // Databases seeded before Stage 4 still get the access demo.
+    await db.transaction((tx) => seedAccessDemo(tx, SEED_CTX, today));
     return;
   }
 
-  const today = gymToday();
   await db.transaction(async (tx) => {
     for (const input of PLANS) {
       const plan = createPlanSchema.parse(input);
@@ -169,6 +172,7 @@ export async function seedDemo() {
       }
       seenPhones.set(phone, row!.id);
     }
+    await seedAccessDemo(tx, SEED_CTX, today);
   });
   console.warn(
     `Seeded ${PLANS.length} plans and ${MEMBERS.length} fictional demo members in "${databaseName(config.databaseUrl)}".`,

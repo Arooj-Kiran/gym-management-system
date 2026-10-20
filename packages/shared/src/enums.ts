@@ -34,6 +34,18 @@ export const AUDIT_ACTIONS = [
   'MEMBERSHIP_REACTIVATED',
   'MEMBERSHIP_CANCELLED',
   'MEMBERSHIP_EXPIRED',
+  'ACCESS_MANUAL_CHECK_IN',
+  'ATTENDANCE_CORRECTED',
+  'DEVICE_CREATED',
+  'DEVICE_UPDATED',
+  'DEVICE_KEY_ROTATED',
+  'DEVICE_DISABLED',
+  'DEVICE_ENABLED',
+  'BIOMETRIC_CONSENT_GIVEN',
+  'BIOMETRIC_CONSENT_WITHDRAWN',
+  'BIOMETRIC_ENROLLED',
+  'BIOMETRIC_ENROLLMENT_REVOKED',
+  'BIOMETRIC_TEMPLATE_DELETED',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -72,6 +84,18 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   MEMBERSHIP_REACTIVATED: 'Membership reactivated',
   MEMBERSHIP_CANCELLED: 'Membership cancelled',
   MEMBERSHIP_EXPIRED: 'Membership expired',
+  ACCESS_MANUAL_CHECK_IN: 'Manual check-in',
+  ATTENDANCE_CORRECTED: 'Attendance corrected',
+  DEVICE_CREATED: 'Access device added',
+  DEVICE_UPDATED: 'Access device updated',
+  DEVICE_KEY_ROTATED: 'Device key rotated',
+  DEVICE_DISABLED: 'Access device disabled',
+  DEVICE_ENABLED: 'Access device enabled',
+  BIOMETRIC_CONSENT_GIVEN: 'Biometric consent recorded',
+  BIOMETRIC_CONSENT_WITHDRAWN: 'Biometric consent withdrawn',
+  BIOMETRIC_ENROLLED: 'Fingerprint enrolled',
+  BIOMETRIC_ENROLLMENT_REVOKED: 'Fingerprint enrollment revoked',
+  BIOMETRIC_TEMPLATE_DELETED: 'Fingerprint deleted from device',
 };
 
 export const AUDIT_ENTITY_TYPES = [
@@ -80,6 +104,11 @@ export const AUDIT_ENTITY_TYPES = [
   'MEMBER',
   'MEMBERSHIP_PLAN',
   'MEMBERSHIP',
+  'ACCESS_ATTEMPT',
+  'ATTENDANCE',
+  'ACCESS_DEVICE',
+  'BIOMETRIC_CONSENT',
+  'BIOMETRIC_ENROLLMENT',
 ] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 
@@ -106,6 +135,13 @@ export const ERROR_CODES = {
   MEMBERSHIP_PERIOD_ENDED: 'MEMBERSHIP_PERIOD_ENDED',
   NOT_LATEST_MEMBERSHIP: 'NOT_LATEST_MEMBERSHIP',
   STALE_VERSION: 'STALE_VERSION',
+  ALREADY_CHECKED_OUT: 'ALREADY_CHECKED_OUT',
+  ATTENDANCE_VOIDED: 'ATTENDANCE_VOIDED',
+  DEVICE_DISABLED: 'DEVICE_DISABLED',
+  CONSENT_REQUIRED: 'CONSENT_REQUIRED',
+  CONSENT_ALREADY_GIVEN: 'CONSENT_ALREADY_GIVEN',
+  ALREADY_ENROLLED: 'ALREADY_ENROLLED',
+  TEMPLATE_REF_IN_USE: 'TEMPLATE_REF_IN_USE',
   LAST_ADMIN: 'LAST_ADMIN',
   SELF_ACTION_NOT_ALLOWED: 'SELF_ACTION_NOT_ALLOWED',
   RATE_LIMITED: 'RATE_LIMITED',
@@ -196,4 +232,114 @@ export const WEEKDAY_LABELS: Record<number, string> = {
   5: 'Fri',
   6: 'Sat',
   7: 'Sun',
+};
+
+// --- Access control, attendance and biometrics (Stage 4) -------------------------------------
+
+export const ACCESS_RESULTS = ['GRANTED', 'DENIED'] as const;
+export type AccessResult = (typeof ACCESS_RESULTS)[number];
+
+/** PLAN §6.4. Every attempt, granted or denied, is stored with exactly one of these. */
+export const ACCESS_REASONS = [
+  'GRANTED',
+  'MEMBER_NOT_RECOGNIZED',
+  'MEMBER_INACTIVE',
+  'ACCESS_BLOCKED',
+  'NO_MEMBERSHIP',
+  'MEMBERSHIP_NOT_ACTIVATED',
+  'MEMBERSHIP_NOT_STARTED',
+  'MEMBERSHIP_EXPIRED',
+  'MEMBERSHIP_CANCELLED',
+  'MEMBERSHIP_SUSPENDED',
+  'OUTSIDE_ACCESS_HOURS',
+  'SCANNER_UNAVAILABLE',
+  'AUTHORIZATION_UNAVAILABLE',
+  'DEVICE_NOT_AUTHORIZED',
+] as const;
+export type AccessReason = (typeof ACCESS_REASONS)[number];
+
+/** Staff-facing labels (access log, attendance). The kiosk uses kioskMessage() instead. */
+export const ACCESS_REASON_LABELS: Record<AccessReason, string> = {
+  GRANTED: 'Granted',
+  MEMBER_NOT_RECOGNIZED: 'Not recognized',
+  MEMBER_INACTIVE: 'Member inactive',
+  ACCESS_BLOCKED: 'Entry blocked',
+  NO_MEMBERSHIP: 'No membership',
+  MEMBERSHIP_NOT_ACTIVATED: 'Not activated',
+  MEMBERSHIP_NOT_STARTED: 'Not started yet',
+  MEMBERSHIP_EXPIRED: 'Expired',
+  MEMBERSHIP_CANCELLED: 'Cancelled',
+  MEMBERSHIP_SUSPENDED: 'Suspended',
+  OUTSIDE_ACCESS_HOURS: 'Outside plan hours',
+  SCANNER_UNAVAILABLE: 'Scanner unavailable',
+  AUTHORIZATION_UNAVAILABLE: 'Could not verify',
+  DEVICE_NOT_AUTHORIZED: 'Device not authorized',
+};
+
+/** Derived on the server from the device type (or MANUAL); never taken from the client. */
+export const ACCESS_SOURCES = ['SIMULATED', 'REAL', 'MANUAL'] as const;
+export type AccessSource = (typeof ACCESS_SOURCES)[number];
+
+export const ACCESS_SOURCE_LABELS: Record<AccessSource, string> = {
+  SIMULATED: 'Simulated scanner',
+  REAL: 'Fingerprint scanner',
+  MANUAL: 'Manual check-in',
+};
+
+export const DEVICE_TYPES = ['SIMULATED', 'REAL'] as const;
+export type DeviceType = (typeof DEVICE_TYPES)[number];
+
+export const DEVICE_TYPE_LABELS: Record<DeviceType, string> = {
+  SIMULATED: 'Simulated',
+  REAL: 'Real scanner',
+};
+
+export const DEVICE_STATUSES = ['ACTIVE', 'DISABLED'] as const;
+export type DeviceStatus = (typeof DEVICE_STATUSES)[number];
+
+export const DEVICE_HEALTH = ['OK', 'ERROR'] as const;
+export type DeviceHealth = (typeof DEVICE_HEALTH)[number];
+
+/** What the scanner reported. Matching happens on the device; the server only sees the ref. */
+export const MATCH_RESULTS = ['MATCH', 'NO_MATCH', 'DEVICE_ERROR'] as const;
+export type MatchResult = (typeof MATCH_RESULTS)[number];
+
+export const SIMULATOR_SCENARIOS = [
+  'NO_MATCH',
+  'SCANNER_UNAVAILABLE',
+  'AUTHORIZATION_UNAVAILABLE',
+] as const;
+export type SimulatorScenario = (typeof SIMULATOR_SCENARIOS)[number];
+
+export const SIMULATOR_SCENARIO_LABELS: Record<SimulatorScenario, string> = {
+  NO_MATCH: 'Unknown fingerprint',
+  SCANNER_UNAVAILABLE: 'Scanner unavailable',
+  AUTHORIZATION_UNAVAILABLE: 'Backend cannot verify',
+};
+
+export const ATTENDANCE_STATUSES = ['VALID', 'VOIDED'] as const;
+export type AttendanceStatus = (typeof ATTENDANCE_STATUSES)[number];
+
+export const ATTENDANCE_STATUS_LABELS: Record<AttendanceStatus, string> = {
+  VALID: 'Valid',
+  VOIDED: 'Voided',
+};
+
+export const CORRECTION_FIELDS = ['CHECK_IN_AT', 'CHECK_OUT_AT', 'STATUS'] as const;
+export type CorrectionField = (typeof CORRECTION_FIELDS)[number];
+
+export const CORRECTION_FIELD_LABELS: Record<CorrectionField, string> = {
+  CHECK_IN_AT: 'Check-in time',
+  CHECK_OUT_AT: 'Check-out time',
+  STATUS: 'Status',
+};
+
+/** REVOKED = waiting for the device to confirm the template was deleted. */
+export const ENROLLMENT_STATUSES = ['ACTIVE', 'REVOKED', 'DELETED'] as const;
+export type EnrollmentStatus = (typeof ENROLLMENT_STATUSES)[number];
+
+export const ENROLLMENT_STATUS_LABELS: Record<EnrollmentStatus, string> = {
+  ACTIVE: 'Active',
+  REVOKED: 'Deletion pending',
+  DELETED: 'Deleted',
 };

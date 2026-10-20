@@ -1,6 +1,7 @@
 import { ERROR_CODES } from '@gms/shared';
 import type { ErrorRequestHandler, RequestHandler } from 'express';
 import type { Logger } from 'pino';
+import { loggableError } from '../lib/db-errors';
 import { AppError, notFound } from '../lib/errors';
 
 export const notFoundHandler: RequestHandler = () => {
@@ -47,7 +48,7 @@ export function errorHandler(logger: Logger): ErrorRequestHandler {
       }
     }
 
-    logger.error({ err: error, requestId: req.id }, 'Unhandled error');
+    logger.error({ err: loggableError(error), requestId: req.id }, 'Unhandled error');
     res.status(500).json({
       error: {
         code: ERROR_CODES.INTERNAL_ERROR,

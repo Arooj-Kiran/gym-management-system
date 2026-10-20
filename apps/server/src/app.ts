@@ -12,9 +12,14 @@ import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import type { RateLimitOptions } from './middleware/rate-limits';
 import { requestId } from './middleware/request-id';
 import { checkOrigin, loadSession } from './middleware/session';
+import { accessSettings, type AccessSettings } from './modules/access/access-settings';
+import { accessRoutes } from './modules/access/access.routes';
+import { attendanceRoutes } from './modules/attendance/attendance.routes';
 import { auditRoutes } from './modules/audit/audit.routes';
 import { authRoutes } from './modules/auth/auth.routes';
+import { biometricRoutes } from './modules/biometrics/biometrics.routes';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes';
+import { devicesRoutes } from './modules/devices/devices.routes';
 import { healthRoutes } from './modules/health/health.routes';
 import { membersRoutes } from './modules/members/members.routes';
 import { membershipsRoutes } from './modules/memberships/memberships.routes';
@@ -26,6 +31,8 @@ import { staffRoutes } from './modules/staff/staff.routes';
 export interface AppOptions {
   logger?: Logger;
   rateLimits?: Partial<RateLimitOptions>;
+  /** Tests shorten timeouts or toggle the simulator; defaults come from the environment. */
+  access?: Partial<AccessSettings>;
 }
 
 const WEB_DIST = path.resolve(import.meta.dirname, '../../web/dist');
@@ -37,6 +44,7 @@ export function createApp(options: AppOptions = {}) {
     loginWindowMinutes: config.loginRateLimitWindowMinutes,
     ...options.rateLimits,
   };
+  const access = accessSettings(options.access);
 
   const app = express();
   app.disable('x-powered-by');
@@ -80,6 +88,10 @@ export function createApp(options: AppOptions = {}) {
   api.use('/members', membersRoutes());
   api.use('/membership-plans', plansRoutes());
   api.use('/memberships', membershipsRoutes());
+  api.use('/access', accessRoutes(access));
+  api.use('/attendance', attendanceRoutes(access));
+  api.use('/devices', devicesRoutes());
+  api.use('/biometric', biometricRoutes());
   api.use('/me', portalRoutes());
   api.use('/dashboard', dashboardRoutes());
   api.use(notFoundHandler);

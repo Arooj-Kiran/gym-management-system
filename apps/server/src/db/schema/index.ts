@@ -6,3 +6,5 @@ export * from './gym-settings';
 export * from './members';
 export * from './membership-plans';
 export * from './memberships';
+export * from './access';
+export * from './biometrics';

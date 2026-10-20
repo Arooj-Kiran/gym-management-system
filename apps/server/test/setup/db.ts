@@ -7,7 +7,7 @@ import { db } from '../../src/db/client';
  */
 export async function resetTables() {
   await db.execute(
-    sql`truncate table audit_logs, membership_events, memberships, members, membership_plans, user_sessions, staff_profiles, users restart identity cascade`,
+    sql`truncate table attendance_corrections, biometric_enrollments, biometric_consents, attendance_records, access_attempts, access_devices, audit_logs, membership_events, memberships, members, membership_plans, user_sessions, staff_profiles, users restart identity cascade`,
   );
   await db.execute(sql`
     update gym_settings set

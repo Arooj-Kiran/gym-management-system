@@ -49,6 +49,33 @@ describe('loadConfig', () => {
     }
   });
 
+  it('applies the access-control defaults', () => {
+    const config = loadConfig({ ...base });
+    expect(config.accessDuplicateWindowSeconds).toBe(60);
+    expect(config.accessDbTimeoutMs).toBe(2000);
+    expect(config.accessScanRateLimitPerMinute).toBe(60);
+    expect(config.biometricSimulatorEnabled).toBe(false);
+  });
+
+  it('allows the simulated scanner outside production', () => {
+    expect(loadConfig({ ...base, BIOMETRIC_SIMULATOR_ENABLED: 'true' }).biometricSimulatorEnabled).toBe(
+      true,
+    );
+  });
+
+  it('refuses to start with the simulated scanner enabled in production (PLAN §6.5)', () => {
+    expect(() =>
+      loadConfig({ ...base, NODE_ENV: 'production', BIOMETRIC_SIMULATOR_ENABLED: 'true' }),
+    ).toThrow(/BIOMETRIC_SIMULATOR_ENABLED/);
+    expect(() =>
+      loadConfig({ ...base, NODE_ENV: 'production', BIOMETRIC_SIMULATOR_ENABLED: '1' }),
+    ).toThrow(ConfigError);
+    expect(
+      loadConfig({ ...base, NODE_ENV: 'production', BIOMETRIC_SIMULATOR_ENABLED: 'false' })
+        .biometricSimulatorEnabled,
+    ).toBe(false);
+  });
+
   it('requires WEB_ORIGIN', () => {
     const { WEB_ORIGIN: _omit, ...rest } = base;
     expect(() => loadConfig(rest)).toThrow(/WEB_ORIGIN/);

@@ -1,10 +1,19 @@
 import { hasPermission, ROLES, type Permission, type Role } from '@gms/shared';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { closeDb } from '../../src/db/client';
+import { closeDb, db } from '../../src/db/client';
+import { attendanceRecords } from '../../src/db/schema';
 import { signIn, testApp, type Session } from '../setup/auth';
 import { resetTables } from '../setup/db';
-import { createMember, createMembership, createPlan, createUser } from '../setup/factories';
+import { randomUUID } from 'node:crypto';
+import {
+  createDevice,
+  createMember,
+  createMembership,
+  createPlan,
+  createUser,
+  enrollMember,
+} from '../setup/factories';
 
 /**
  * Permission-matrix harness (PLAN §5): every protected route × every role.
@@ -21,6 +30,10 @@ interface Targets {
   memberId: string;
   planId: string;
   membershipId: string;
+  deviceId: string;
+  attendanceId: string;
+  enrollmentId: string;
+  missingId: string;
 }
 
 interface RouteCase {
@@ -215,6 +228,120 @@ const ROUTES: RouteCase[] = [
   { method: 'post', path: () => '/api/v1/me/profile/photo', roles: ['MEMBER'] },
   { method: 'get', path: () => '/api/v1/me/membership', roles: ['MEMBER'] },
   { method: 'get', path: () => '/api/v1/me/memberships', roles: ['MEMBER'] },
+  { method: 'get', path: () => '/api/v1/me/attendance', roles: ['MEMBER'] },
+  // Access control (Stage 4). Device-key routes are covered in access.test.ts.
+  { method: 'get', path: () => '/api/v1/access/devices', permission: 'access:monitor' },
+  { method: 'get', path: () => '/api/v1/access/attempts', permission: 'access:read-log' },
+  // Without a deviceId the stream stops at validation instead of holding the connection open.
+  { method: 'get', path: () => '/api/v1/access/stream', permission: 'access:monitor' },
+  {
+    method: 'get',
+    path: () => '/api/v1/access/simulator/fixtures',
+    permission: 'access:simulate',
+  },
+  { method: 'post', path: () => '/api/v1/access/simulate', permission: 'access:simulate' },
+  // Attendance (Stage 4)
+  {
+    method: 'post',
+    path: () => '/api/v1/attendance/manual-check-in',
+    permission: 'attendance:manual-check-in',
+  },
+  {
+    method: 'get',
+    path: () => '/api/v1/attendance',
+    permission: 'attendance:read',
+    scopedDeny: STAFF_ONLY,
+  },
+  {
+    method: 'get',
+    path: () => '/api/v1/attendance/today',
+    permission: 'attendance:read',
+    scopedDeny: STAFF_ONLY,
+  },
+  {
+    // An unknown record, so allowed roles get 404 and nothing is checked out.
+    method: 'post',
+    path: ({ missingId }) => `/api/v1/attendance/${missingId}/check-out`,
+    permission: 'attendance:check-out',
+  },
+  {
+    method: 'post',
+    path: ({ attendanceId }) => `/api/v1/attendance/${attendanceId}/corrections`,
+    permission: 'attendance:correct',
+  },
+  {
+    method: 'get',
+    path: ({ attendanceId }) => `/api/v1/attendance/${attendanceId}/corrections`,
+    permission: 'attendance:read',
+    scopedDeny: STAFF_ONLY_UNASSIGNED,
+  },
+  {
+    method: 'get',
+    path: ({ memberId }) => `/api/v1/members/${memberId}/attendance`,
+    permission: 'attendance:read',
+    scopedDeny: STAFF_ONLY_UNASSIGNED,
+  },
+  {
+    method: 'get',
+    path: ({ memberId }) => `/api/v1/members/${memberId}/access-attempts`,
+    permission: 'attendance:read',
+    scopedDeny: STAFF_ONLY_UNASSIGNED,
+  },
+  // Devices (Stage 4)
+  { method: 'get', path: () => '/api/v1/devices', permission: 'devices:manage' },
+  { method: 'post', path: () => '/api/v1/devices', permission: 'devices:manage' },
+  {
+    method: 'get',
+    path: ({ deviceId }) => `/api/v1/devices/${deviceId}`,
+    permission: 'devices:manage',
+  },
+  {
+    method: 'patch',
+    path: ({ deviceId }) => `/api/v1/devices/${deviceId}`,
+    permission: 'devices:manage',
+  },
+  {
+    method: 'post',
+    path: ({ deviceId }) => `/api/v1/devices/${deviceId}/rotate-key`,
+    permission: 'devices:manage',
+  },
+  {
+    method: 'post',
+    path: ({ deviceId }) => `/api/v1/devices/${deviceId}/disable`,
+    permission: 'devices:manage',
+  },
+  {
+    method: 'post',
+    path: ({ deviceId }) => `/api/v1/devices/${deviceId}/enable`,
+    permission: 'devices:manage',
+  },
+  // Biometrics (Stage 4)
+  {
+    method: 'get',
+    path: ({ memberId }) => `/api/v1/members/${memberId}/biometric`,
+    permission: 'biometrics:read-status',
+    scopedDeny: STAFF_ONLY,
+  },
+  {
+    method: 'post',
+    path: ({ memberId }) => `/api/v1/members/${memberId}/biometric/consent`,
+    permission: 'biometrics:manage',
+  },
+  {
+    method: 'post',
+    path: ({ memberId }) => `/api/v1/members/${memberId}/biometric/consent/withdraw`,
+    permission: 'biometrics:manage',
+  },
+  {
+    method: 'post',
+    path: ({ memberId }) => `/api/v1/members/${memberId}/biometric/enrollments`,
+    permission: 'biometrics:manage',
+  },
+  {
+    method: 'post',
+    path: ({ enrollmentId }) => `/api/v1/biometric/enrollments/${enrollmentId}/revoke`,
+    permission: 'biometrics:manage',
+  },
   // Dashboard (grows per stage)
   { method: 'get', path: () => '/api/v1/dashboard/summary', permission: 'dashboard:read' },
   { method: 'get', path: () => '/api/v1/dashboard/activity', permission: 'dashboard:read' },
@@ -237,11 +364,28 @@ beforeAll(async () => {
     startDate: '2026-01-01',
     endDate: '2099-12-31',
   });
+  const scanner = await createDevice();
+  const staff = await createUser({ role: 'TRAINER', firstName: 'Matrix', lastName: 'Target' });
+  const enrollment = await enrollMember(member, scanner.device, 'SIM-0001', staff);
+  const scan = await request(app)
+    .post('/api/v1/access/scan')
+    .set('Authorization', scanner.authorization)
+    .send({
+      eventId: randomUUID(),
+      matchResult: 'MATCH',
+      templateRef: 'SIM-0001',
+      occurredAt: new Date().toISOString(),
+    });
+  if (scan.body.decision !== 'GRANTED') throw new Error('Matrix check-in was not granted');
   targets = {
-    userId: (await createUser({ role: 'TRAINER', firstName: 'Matrix', lastName: 'Target' })).id,
+    userId: staff.id,
     memberId: member.id,
     planId: plan.id,
     membershipId: membership.id,
+    deviceId: scanner.device.id,
+    attendanceId: (await db.select({ id: attendanceRecords.id }).from(attendanceRecords))[0]!.id,
+    enrollmentId: enrollment.id,
+    missingId: randomUUID(),
   };
   for (const role of ROLES) sessions.set(role, await signIn(app, await createUser({ role })));
 });
@@ -252,7 +396,16 @@ const BAD_BODY = { unexpectedField: true };
 describe.each(
   ROUTES.map((route) => ({
     ...route,
-    label: route.path({ userId: ':id', memberId: ':id', planId: ':id', membershipId: ':id' }),
+    label: route.path({
+      userId: ':id',
+      memberId: ':id',
+      planId: ':id',
+      membershipId: ':id',
+      deviceId: ':id',
+      attendanceId: ':id',
+      enrollmentId: ':id',
+      missingId: ':id',
+    }),
   })),
 )('$method $label', (route) => {
   it.each(ROLES)('role %s', async (role) => {

@@ -1,6 +1,6 @@
 # Gym Management System — Implementation Plan (Stage 0)
 
-> Status: **APPROVED (2026-10-14).** Decisions D1–D8 approved; change requests C1–C2 incorporated. Stages 1–2 approved; Stage 3 done, awaiting approval (see Section 11).
+> Status: **APPROVED (2026-10-14).** Decisions D1–D8 approved; change requests C1–C2 incorporated. Stages 1–3 approved; Stage 4 in progress (see Section 11).
 > Priority order (from docs/RULES.md): security and the biometric authorization rule → correctness → rules → this plan → requirements → speed.
 
 ## Contents
@@ -1166,8 +1166,8 @@ Access control (Stage 4) is deliberately placed **before** payments, because it 
 | 0 | Planning (this document) | **Done** | 2026-10-14 | D1–D8 approved; C1 (activation policy) and C2 (duplicate phone warning) incorporated |
 | 1 | Foundation | **Done** | 2026-10-14 | Exit gate passed 2026-10-14: lint 0 problems, typecheck 0 errors, `npm test` 230/230 (shared 69, server 138, web 23; corrected from 229 on 2026-10-17), `npm run test:e2e` 14/14; server + web start, `/health/ready` reports the database OK. Re-run before approval: same results; `gym_dev` row counts identical before and after the E2E run. |
 | 2 | Members and membership plans | **Done** | 2026-10-17 | Exit gate passed 2026-10-17: lint 0 problems, typecheck 0 errors, format check clean, `npm test` 473/473 (shared 85, server 359, web 29), `npm run test:e2e` 23/23 (against `gym_test` only). Migrations 0002–0003 applied to `gym_dev`; server + web start. |
-| 3 | Membership lifecycle and history | **Done** | — | Exit gate passed 2026-10-18: lint 0 problems, typecheck 0 errors, format check clean, `npm test` 646/646 (shared 103, server 496, web 47), `npm run test:e2e` 24/24 (against `gym_test` only). Migrations 0004–0005 applied to `gym_dev`; server + web start and the expiry job runs at startup. Awaiting approval. |
-| 4 | Attendance and biometric access control (SIMULATED) | Not started | — | |
+| 3 | Membership lifecycle and history | **Done** | 2026-10-18 | Exit gate passed 2026-10-18: lint 0 problems, typecheck 0 errors, format check clean, `npm test` 646/646 (shared 103, server 496, web 47), `npm run test:e2e` 24/24 (against `gym_test` only). Migrations 0004–0005 applied to `gym_dev`; server + web start and the expiry job runs at startup. |
+| 4 | Attendance and biometric access control (SIMULATED) | In progress | — | |
 | 5 | Payments and billing | Not started | — | |
 | 6 | Staff, trainers, schedules, classes and appointments | Not started | — | |
 | 7 | Workouts, equipment and notifications | Not started | — | |
@@ -1206,8 +1206,8 @@ Access control (Stage 4) is deliberately placed **before** payments, because it 
 | 2026-10-17 | Stage 2: §11 Stage 1 test total corrected from 229 to 230 (69 + 138 + 23) | — (record fix) |
 | 2026-10-17 | Stage 2: added `GET · POST /me/profile/photo` (a member views and replaces their own photo through an authorized route, as §4.10 allows photo edits). `/members/check-duplicate` also accepts `firstName`/`lastName` so the form can flag a same-name + same-phone match before saving. | User (with the Stage 2 report) |
 | 2026-10-17 | Stage 2: one app shell with role-based navigation instead of a separate portal shell; members get My profile, Plans and My account. The DEMO DATA banner is shown on staff screens only. | User (with the Stage 2 report) |
-| 2026-10-18 | Stage 3: month plans end the day before the same date N months later; when that date does not exist the period runs to the end of the shorter month (31 Jan + 1 month → 28/29 Feb), so no period is cut short. | — (pending Stage 3 approval) |
-| 2026-10-18 | Stage 3: until invoices exist (Stage 5), activation and renewal behave as with C1 OFF — a renewal is created directly `ACTIVE` (starting after the current period); a pending period whose dates have passed cannot be activated or suspended (`409 MEMBERSHIP_PERIOD_ENDED`, cancel and reassign). | — (pending Stage 3 approval) |
-| 2026-10-18 | Stage 3: renew only from the member's latest membership (`409 NOT_LATEST_MEMBERSHIP`); a start date may be chosen from 30 days back to 365 days ahead; extend adds 1–365 days and cannot run into the next period; every action sends the row's `version` and a stale one gets `409 STALE_VERSION`. | — (pending Stage 3 approval) |
-| 2026-10-18 | Stage 3: the expiry job runs daily at 00:05 gym time and once at server start, under a PostgreSQL advisory lock so only one process runs it. | — (pending Stage 3 approval) |
-| 2026-10-18 | Stage 3: UI — the member page gets Profile / Membership tabs (`?tab=membership`, shareable link); a staff Memberships list page (`/memberships`, with the expiring-soon view at `?expiring=7`); My membership in the member portal. Toast colors mapped to the design tokens so success/error toasts meet AA contrast. | — (pending Stage 3 approval) |
+| 2026-10-18 | Stage 3: month plans end the day before the same date N months later; when that date does not exist the period runs to the end of the shorter month (31 Jan + 1 month → 28/29 Feb), so no period is cut short. | User (with the Stage 3 report) |
+| 2026-10-18 | Stage 3: until invoices exist (Stage 5), activation and renewal behave as with C1 OFF — a renewal is created directly `ACTIVE` (starting after the current period); a pending period whose dates have passed cannot be activated or suspended (`409 MEMBERSHIP_PERIOD_ENDED`, cancel and reassign). | User (with the Stage 3 report) |
+| 2026-10-18 | Stage 3: renew only from the member's latest membership (`409 NOT_LATEST_MEMBERSHIP`); a start date may be chosen from 30 days back to 365 days ahead; extend adds 1–365 days and cannot run into the next period; every action sends the row's `version` and a stale one gets `409 STALE_VERSION`. | User (with the Stage 3 report) |
+| 2026-10-18 | Stage 3: the expiry job runs daily at 00:05 gym time and once at server start, under a PostgreSQL advisory lock so only one process runs it. | User (with the Stage 3 report) |
+| 2026-10-18 | Stage 3: UI — the member page gets Profile / Membership tabs (`?tab=membership`, shareable link); a staff Memberships list page (`/memberships`, with the expiring-soon view at `?expiring=7`); My membership in the member portal. Toast colors mapped to the design tokens so success/error toasts meet AA contrast. | User (with the Stage 3 report) |

@@ -3,16 +3,24 @@ import {
   SCOPES,
   type AuditAction,
   type AuditEntityType,
+  type DashboardAttendance,
   type DashboardMembershipCounts,
   type DashboardActivityItem,
   type DashboardSummary,
   type Role,
 } from '@gms/shared';
-import { and, count, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gte, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '../../db/client';
-import { auditLogs, members, memberships, users } from '../../db/schema';
-import { gymToday } from '../../lib/dates';
+import {
+  accessAttempts,
+  attendanceRecords,
+  auditLogs,
+  members,
+  memberships,
+  users,
+} from '../../db/schema';
+import { gymDayStart, gymToday } from '../../lib/dates';
 import { currentEffectiveStatusSql, expiringSoonSql } from '../memberships/current-membership';
 import { getSettings } from '../settings/settings.service';
 
@@ -21,13 +29,72 @@ const ACTIVITY_LIMIT = 8;
 /** Whole-gym member figures need unscoped member access; trainers get their own view later. */
 const seesAllMembers = (role: Role) => permissionScope(role, 'members:read') === SCOPES.ALL;
 const seesAllMemberships = (role: Role) => permissionScope(role, 'memberships:read') === SCOPES.ALL;
+const seesAllAttendance = (role: Role) => permissionScope(role, 'attendance:read') === SCOPES.ALL;
 
 export async function getSummary(role: Role): Promise<DashboardSummary> {
-  const [memberCounts, membershipCounts] = await Promise.all([
+  const [memberCounts, membershipCounts, attendance] = await Promise.all([
     seesAllMembers(role) ? getMemberCounts() : null,
     seesAllMemberships(role) ? getMembershipCounts() : null,
+    seesAllAttendance(role) ? getAttendanceToday() : null,
   ]);
-  return { members: memberCounts, memberships: membershipCounts };
+  return { members: memberCounts, memberships: membershipCounts, attendance };
+}
+
+const RECENT_CHECK_INS = 6;
+
+/** Today's valid check-ins, today's denied attempts, and the latest check-ins (gym time). */
+async function getAttendanceToday(): Promise<DashboardAttendance> {
+  const today = gymToday();
+  const start = gymDayStart(today);
+  const end = gymDayStart(today, 1);
+  const validToday = and(
+    eq(attendanceRecords.status, 'VALID'),
+    gte(attendanceRecords.checkInAt, start),
+    lt(attendanceRecords.checkInAt, end),
+  );
+  const [[checkIns], [denied], recent] = await Promise.all([
+    db.select({ total: count() }).from(attendanceRecords).where(validToday),
+    db
+      .select({ total: count() })
+      .from(accessAttempts)
+      .where(
+        and(
+          eq(accessAttempts.result, 'DENIED'),
+          gte(accessAttempts.occurredAt, start),
+          lt(accessAttempts.occurredAt, end),
+        ),
+      ),
+    db
+      .select({
+        id: attendanceRecords.id,
+        checkInAt: attendanceRecords.checkInAt,
+        source: attendanceRecords.source,
+        memberId: members.id,
+        memberCode: members.memberCode,
+        firstName: members.firstName,
+        lastName: members.lastName,
+      })
+      .from(attendanceRecords)
+      .innerJoin(members, eq(members.id, attendanceRecords.memberId))
+      .where(validToday)
+      .orderBy(desc(attendanceRecords.checkInAt), desc(attendanceRecords.id))
+      .limit(RECENT_CHECK_INS),
+  ]);
+  return {
+    checkInsToday: checkIns?.total ?? 0,
+    deniedToday: denied?.total ?? 0,
+    recentCheckIns: recent.map((row) => ({
+      id: row.id,
+      checkInAt: row.checkInAt.toISOString(),
+      source: row.source,
+      member: {
+        id: row.memberId,
+        memberCode: row.memberCode,
+        firstName: row.firstName,
+        lastName: row.lastName,
+      },
+    })),
+  };
 }
 
 async function getMemberCounts() {

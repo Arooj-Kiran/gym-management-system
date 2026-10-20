@@ -6,6 +6,8 @@ import {
 } from '../../middleware/require-permission';
 import { authenticated } from '../../middleware/session';
 import { singleImage } from '../../middleware/upload';
+import * as attendance from '../attendance/attendance.routes';
+import * as biometrics from '../biometrics/biometrics.routes';
 import * as membershipsController from '../memberships/memberships.controller';
 import * as controller from './members.controller';
 
@@ -51,6 +53,32 @@ export function membersRoutes() {
     '/:id/access-unblock',
     requirePermission('access:restrict'),
     controller.unblockAccess,
+  );
+  router.get('/:id/attendance', requirePermission('attendance:read'), attendance.listForMember);
+  router.get(
+    '/:id/access-attempts',
+    requirePermission('attendance:read'),
+    attendance.attemptsForMember,
+  );
+  router.get(
+    '/:id/biometric',
+    requirePermission('biometrics:read-status'),
+    biometrics.statusForMember,
+  );
+  router.post(
+    '/:id/biometric/consent',
+    requirePermission('biometrics:manage'),
+    biometrics.giveConsent,
+  );
+  router.post(
+    '/:id/biometric/consent/withdraw',
+    requirePermission('biometrics:manage'),
+    biometrics.withdrawConsent,
+  );
+  router.post(
+    '/:id/biometric/enrollments',
+    requirePermission('biometrics:manage'),
+    biometrics.enroll,
   );
   return router;
 }

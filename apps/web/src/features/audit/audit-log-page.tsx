@@ -30,6 +30,11 @@ const ENTITY_LABELS: Record<AuditEntityType, string> = {
   MEMBER: 'Members',
   MEMBERSHIP_PLAN: 'Membership plans',
   MEMBERSHIP: 'Memberships',
+  ACCESS_ATTEMPT: 'Access attempts',
+  ATTENDANCE: 'Attendance',
+  ACCESS_DEVICE: 'Access devices',
+  BIOMETRIC_CONSENT: 'Biometric consent',
+  BIOMETRIC_ENROLLMENT: 'Biometric enrollments',
 };
 
 function useAuditFilters() {

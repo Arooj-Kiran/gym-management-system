@@ -22,3 +22,6 @@ uploads/
 Thumbs.db
 .vscode/*
 !.vscode/extensions.json
+
+# Biometric agent: local denial outbox
+apps/biometric-agent/data/

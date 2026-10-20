@@ -16,6 +16,11 @@ export const REDACT_PATHS = [
   '*.token',
   '*.tokenHash',
   '*.csrfToken',
+  '*.templateRef',
+  '*.template_ref',
+  '*.deviceKey',
+  '*.apiKey',
+  '*.secret',
 ];
 
 export function createLogger(

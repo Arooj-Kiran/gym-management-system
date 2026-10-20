@@ -1,7 +1,17 @@
-import type { Role } from '@gms/shared';
+import { BIOMETRIC_CONSENT, type Role } from '@gms/shared';
 import { db } from '../../src/db/client';
-import { members, membershipPlans, memberships, staffProfiles, users } from '../../src/db/schema';
+import {
+  accessDevices,
+  biometricConsents,
+  biometricEnrollments,
+  members,
+  membershipPlans,
+  memberships,
+  staffProfiles,
+  users,
+} from '../../src/db/schema';
 import { hashPassword } from '../../src/lib/passwords';
+import { randomToken, sha256Hex } from '../../src/lib/tokens';
 
 /** Fictional test password; only ever used against the throwaway test database. */
 export const TEST_PASSWORD = 'Test-password-2026!';
@@ -114,4 +124,59 @@ export async function createMembership(
     })
     .returning();
   return membership!;
+}
+
+let deviceSequence = 0;
+
+/** A device plus its key, ready for `Authorization: Device <id>.<key>`. */
+export async function createDevice(overrides: Partial<typeof accessDevices.$inferInsert> = {}) {
+  deviceSequence += 1;
+  const key = randomToken(32);
+  const [device] = await db
+    .insert(accessDevices)
+    .values({
+      name: `Test Scanner ${deviceSequence}`,
+      location: 'Front desk',
+      deviceType: 'SIMULATED',
+      apiKeyHash: sha256Hex(key),
+      ...overrides,
+    })
+    .returning();
+  return { device: device!, key, authorization: `Device ${device!.id}.${key}` };
+}
+
+/** Consent in force, recorded by `recordedBy` (any staff user). */
+export async function createConsent(member: { id: string }, recordedBy: { id: string }) {
+  const [consent] = await db
+    .insert(biometricConsents)
+    .values({
+      memberId: member.id,
+      consentVersion: BIOMETRIC_CONSENT.version,
+      consentTextSha256: sha256Hex(BIOMETRIC_CONSENT.text),
+      recordedBy: recordedBy.id,
+    })
+    .returning();
+  return consent!;
+}
+
+/** Consent + ACTIVE enrollment of `templateRef` on `device`. */
+export async function enrollMember(
+  member: { id: string },
+  device: { id: string; deviceType: 'SIMULATED' | 'REAL' },
+  templateRef: string,
+  staff: { id: string },
+) {
+  const consent = await createConsent(member, staff);
+  const [enrollment] = await db
+    .insert(biometricEnrollments)
+    .values({
+      memberId: member.id,
+      deviceId: device.id,
+      provider: device.deviceType === 'SIMULATED' ? 'SIMULATED' : 'TESTVENDOR',
+      templateRef,
+      consentId: consent.id,
+      enrolledBy: staff.id,
+    })
+    .returning();
+  return enrollment!;
 }

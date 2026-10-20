@@ -44,6 +44,10 @@ const envSchema = z.object({
   CURRENCY_CODE: z.string().regex(/^[A-Z]{3}$/, 'must be an ISO 4217 code such as PKR'),
   UPLOAD_DIR: z.string().min(1).default('./uploads'),
   MAX_UPLOAD_MB: z.coerce.number().positive().max(50).default(2),
+  ACCESS_DUPLICATE_SCAN_WINDOW_SECONDS: z.coerce.number().int().min(0).max(3600).default(60),
+  ACCESS_DB_TIMEOUT_MS: z.coerce.number().int().min(100).max(30_000).default(2000),
+  ACCESS_SCAN_RATE_LIMIT_PER_MINUTE: positiveInt(60),
+  BIOMETRIC_SIMULATOR_ENABLED: booleanString.default(false),
 });
 
 export class ConfigError extends Error {}
@@ -85,6 +89,12 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env) {
   const isTest = env.NODE_ENV === 'test';
   const isProduction = env.NODE_ENV === 'production';
   if (isTest) assertSafeTestDatabase(env.TEST_DATABASE_URL, env.DATABASE_URL);
+  // PLAN §6.5: a simulated scanner must never be able to open a real gym's door.
+  if (isProduction && env.BIOMETRIC_SIMULATOR_ENABLED) {
+    throw new ConfigError(
+      'BIOMETRIC_SIMULATOR_ENABLED must not be true when NODE_ENV=production; refusing to start.',
+    );
+  }
 
   return {
     nodeEnv: env.NODE_ENV,
@@ -107,6 +117,10 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env) {
     /** Relative paths resolve from the repository root, never from the process cwd. */
     uploadDir: path.resolve(REPO_ROOT, env.UPLOAD_DIR),
     maxUploadBytes: Math.round(env.MAX_UPLOAD_MB * 1024 * 1024),
+    accessDuplicateWindowSeconds: env.ACCESS_DUPLICATE_SCAN_WINDOW_SECONDS,
+    accessDbTimeoutMs: env.ACCESS_DB_TIMEOUT_MS,
+    accessScanRateLimitPerMinute: env.ACCESS_SCAN_RATE_LIMIT_PER_MINUTE,
+    biometricSimulatorEnabled: env.BIOMETRIC_SIMULATOR_ENABLED,
   };
 }
 

@@ -102,7 +102,11 @@ describe('dashboard member cards (scenario 16, Stage 2 cards)', () => {
       expect((await get(staff, '/summary')).body.members.total, role).toBe(1);
     }
     const trainer = await signIn(app, await createUser({ role: 'TRAINER' }));
-    expect((await get(trainer, '/summary')).body).toEqual({ members: null, memberships: null });
+    expect((await get(trainer, '/summary')).body).toEqual({
+      members: null,
+      memberships: null,
+      attendance: null,
+    });
     expect((await get(trainer, '/activity')).body).toEqual([]);
 
     const member = await signIn(app, await createUser({ role: 'MEMBER' }));

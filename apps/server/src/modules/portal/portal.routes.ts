@@ -14,5 +14,6 @@ export function portalRoutes() {
   router.get('/profile/photo', controller.getPhoto);
   router.get('/membership', controller.getMembership);
   router.get('/memberships', controller.listMemberships);
+  router.get('/attendance', controller.listAttendance);
   return router;
 }

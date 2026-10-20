@@ -9,12 +9,14 @@
   "workspaces": [
     "packages/shared",
     "apps/server",
-    "apps/web"
+    "apps/web",
+    "apps/biometric-agent"
   ],
   "scripts": {
     "dev": "concurrently -n server,web -c blue,green \"npm run dev -w @gms/server\" \"npm run dev -w @gms/web\"",
     "dev:server": "npm run dev -w @gms/server",
     "dev:web": "npm run dev -w @gms/web",
+    "agent": "npm run start -w @gms/biometric-agent",
     "build": "npm run build -w @gms/web",
     "start": "npm run start -w @gms/server",
     "lint": "eslint .",
