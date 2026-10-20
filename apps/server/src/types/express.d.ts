@@ -1,4 +1,5 @@
 import type { Role } from '@gms/shared';
+import type { AccessDevice } from '../modules/access/device-auth';
 
 declare global {
   namespace Express {
@@ -19,6 +20,8 @@ declare global {
     // `req.id` is declared by pino-http and set by the requestId middleware.
     interface Request {
       auth?: AuthContext;
+      /** Set by `requireDevice` on routes the biometric agent calls. */
+      device?: AccessDevice;
     }
   }
 }

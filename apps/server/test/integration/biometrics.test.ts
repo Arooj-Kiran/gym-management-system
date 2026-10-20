@@ -264,7 +264,8 @@ describe('roles', () => {
     const trainer = as(await signIn(app, await createUser({ role: 'TRAINER' })));
     expect((await trainer.get(`/members/${member.id}/biometric`)).status).toBe(403);
     expect(
-      (await trainer.post(`/members/${member.id}/biometric/consent/withdraw`, { reason: 'x' })).status,
+      (await trainer.post(`/members/${member.id}/biometric/consent/withdraw`, { reason: 'x' }))
+        .status,
     ).toBe(403);
   });
 });

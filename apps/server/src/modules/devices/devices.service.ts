@@ -208,7 +208,10 @@ export async function recordHeartbeat(
     })
     .where(eq(accessDevices.id, device.id));
   const pending = await db
-    .select({ enrollmentId: biometricEnrollments.id, templateRef: biometricEnrollments.templateRef })
+    .select({
+      enrollmentId: biometricEnrollments.id,
+      templateRef: biometricEnrollments.templateRef,
+    })
     .from(biometricEnrollments)
     .where(
       and(

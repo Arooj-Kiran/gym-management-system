@@ -37,7 +37,8 @@ export function setUnauthenticatedHandler(handler: (() => void) | null) {
 // Zod input types for coerced fields (page, pageSize) are `unknown`; only primitives are sent.
 type Query = Record<string, unknown>;
 
-function buildUrl(path: string, query?: Query) {
+/** Also used for EventSource streams, which cannot go through `request`. */
+export function buildUrl(path: string, query?: Query) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query ?? {})) {
     if (

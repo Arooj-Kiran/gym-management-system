@@ -42,7 +42,6 @@ describe('demo seed', () => {
         .where(eq(auditLogs.action, 'MEMBER_DUPLICATE_PHONE_CONFIRMED')),
     ).toHaveLength(1);
 
-
     // Stage 4: one SIMULATED device, SIM-0001…0004 enrolled with consent recorded by the Admin.
     const devices = await db.select().from(accessDevices);
     expect(devices).toHaveLength(1);

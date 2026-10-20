@@ -18,7 +18,9 @@ describe('loadAgentConfig', () => {
       requestTimeoutMs: 3000,
       heartbeatSeconds: 30,
     });
-    expect(config.outboxPath.replaceAll('\\', '/')).toMatch(/apps\/biometric-agent\/data\/outbox\.jsonl$/);
+    expect(config.outboxPath.replaceAll('\\', '/')).toMatch(
+      /apps\/biometric-agent\/data\/outbox\.jsonl$/,
+    );
   });
 
   it('rejects the placeholder key and never echoes key values', () => {
@@ -42,6 +44,8 @@ describe('loadAgentConfig', () => {
 
   it('requires a device ID and a URL', () => {
     expect(() => loadAgentConfig({ ...valid, AGENT_DEVICE_ID: 'abc' })).toThrow(/AGENT_DEVICE_ID/);
-    expect(() => loadAgentConfig({ ...valid, AGENT_BACKEND_URL: 'nope' })).toThrow(/AGENT_BACKEND_URL/);
+    expect(() => loadAgentConfig({ ...valid, AGENT_BACKEND_URL: 'nope' })).toThrow(
+      /AGENT_BACKEND_URL/,
+    );
   });
 });

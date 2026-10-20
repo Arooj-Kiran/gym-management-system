@@ -21,7 +21,10 @@ afterEach(async () => {
 async function clientFor(
   respond: Parameters<typeof mockBackend>[0],
   timeoutMs = 3000,
-): Promise<{ client: BackendClient; requests: Awaited<ReturnType<typeof mockBackend>>['requests'] }> {
+): Promise<{
+  client: BackendClient;
+  requests: Awaited<ReturnType<typeof mockBackend>>['requests'];
+}> {
   const backend = await mockBackend(respond);
   close = backend.close;
   const client = new BackendClient({
@@ -73,12 +76,18 @@ describe('BackendClient.scan — fail closed (PLAN §6.2)', () => {
     delete body.decision;
     const { client } = await clientFor((_req, res) => json(res, 200, body));
     const outcome = await client.scan(event);
-    expect(outcome).toMatchObject({ granted: false, failure: 'MALFORMED_RESPONSE', recordOffline: true });
+    expect(outcome).toMatchObject({
+      granted: false,
+      failure: 'MALFORMED_RESPONSE',
+      recordOffline: true,
+    });
     expect(outcome.message).toBe(UNVERIFIED_MESSAGE);
   });
 
   it('denies a GRANTED decision that names no committed attempt', async () => {
-    const { client } = await clientFor((_req, res) => json(res, 200, decision({ attemptId: null })));
+    const { client } = await clientFor((_req, res) =>
+      json(res, 200, decision({ attemptId: null })),
+    );
     const outcome = await client.scan(event);
     expect(outcome).toMatchObject({ granted: false, decision: null, recordOffline: true });
     expect(outcome.message).toBe(UNVERIFIED_MESSAGE);
@@ -99,7 +108,9 @@ describe('BackendClient.scan — fail closed (PLAN §6.2)', () => {
   });
 
   it('denies a 500 and keeps the denial offline', async () => {
-    const { client } = await clientFor((_req, res) => json(res, 500, { error: { code: 'INTERNAL' } }));
+    const { client } = await clientFor((_req, res) =>
+      json(res, 500, { error: { code: 'INTERNAL' } }),
+    );
     expect(await client.scan(event)).toMatchObject({
       granted: false,
       failure: 'SERVER_ERROR',
@@ -190,7 +201,9 @@ describe('BackendClient.scan — fail closed (PLAN §6.2)', () => {
 
 describe('BackendClient — heartbeat, offline denials, deletions', () => {
   it('parses pending deletions from the heartbeat', async () => {
-    const pending = [{ enrollmentId: '5f4e3d2c-1b0a-4987-8654-3210fedcba98', templateRef: 'SIM-0003' }];
+    const pending = [
+      { enrollmentId: '5f4e3d2c-1b0a-4987-8654-3210fedcba98', templateRef: 'SIM-0003' },
+    ];
     const { client, requests } = await clientFor((_req, res) =>
       json(res, 200, { serverTime: new Date().toISOString(), pendingDeletions: pending }),
     );
@@ -216,8 +229,12 @@ describe('BackendClient — heartbeat, offline denials, deletions', () => {
   });
 
   it('posts confirm-deletion for the enrollment', async () => {
-    const { client, requests } = await clientFor((_req, res) => json(res, 200, { status: 'DELETED' }));
+    const { client, requests } = await clientFor((_req, res) =>
+      json(res, 200, { status: 'DELETED' }),
+    );
     await client.confirmDeletion('5f4e3d2c-1b0a-4987-8654-3210fedcba98');
-    expect(requests[0]!.url).toBe('/biometric/enrollments/5f4e3d2c-1b0a-4987-8654-3210fedcba98/confirm-deletion');
+    expect(requests[0]!.url).toBe(
+      '/biometric/enrollments/5f4e3d2c-1b0a-4987-8654-3210fedcba98/confirm-deletion',
+    );
   });
 });

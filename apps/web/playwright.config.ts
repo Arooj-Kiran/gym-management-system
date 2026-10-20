@@ -39,6 +39,8 @@ export default defineConfig({
         LOGIN_RATE_LIMIT_MAX: '1000',
         // Uploaded test photos stay out of the project's uploads folder.
         UPLOAD_DIR: path.join(os.tmpdir(), 'gms-e2e-uploads'),
+        // The entrance flow is driven through simulated scanners (never in production).
+        BIOMETRIC_SIMULATOR_ENABLED: 'true',
       },
     },
     {

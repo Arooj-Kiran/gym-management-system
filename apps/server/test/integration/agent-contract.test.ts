@@ -66,7 +66,10 @@ beforeEach(async () => {
   memberId = member.id;
   const today = gymToday();
   membershipId = (
-    await createMembership(member, plan, { startDate: addDays(today, -5), endDate: addDays(today, 25) })
+    await createMembership(member, plan, {
+      startDate: addDays(today, -5),
+      endDate: addDays(today, 25),
+    })
   ).id;
   scanner = await createDevice();
   enrollmentId = (await enrollMember(member, scanner.device, 'SIM-0001', admin)).id;
@@ -107,7 +110,10 @@ describe('agent ↔ backend contract (SIMULATED scanner)', () => {
     expect(outcome).toMatchObject({ granted: true, failure: null, title: 'Access Granted' });
     expect(outcome.decision?.source).toBe('SIMULATED');
     expect(relay.openings).toBe(1);
-    const attendance = await db.select().from(attendanceRecords).where(eq(attendanceRecords.memberId, memberId));
+    const attendance = await db
+      .select()
+      .from(attendanceRecords)
+      .where(eq(attendanceRecords.memberId, memberId));
     expect(attendance).toHaveLength(1);
   });
 
@@ -142,7 +148,10 @@ describe('agent ↔ backend contract (SIMULATED scanner)', () => {
     const fact = { eventId: crypto.randomUUID(), occurredAt: new Date().toISOString() };
     await outbox.append(fact);
     expect(await agent.heartbeat()).toMatchObject({ ok: true, uploaded: 1 });
-    const [attempt] = await db.select().from(accessAttempts).where(eq(accessAttempts.eventId, fact.eventId));
+    const [attempt] = await db
+      .select()
+      .from(accessAttempts)
+      .where(eq(accessAttempts.eventId, fact.eventId));
     expect(attempt).toMatchObject({ result: 'DENIED', reason: 'AUTHORIZATION_UNAVAILABLE' });
     expect(await outbox.read()).toEqual([]);
   });

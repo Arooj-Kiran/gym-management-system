@@ -142,7 +142,8 @@ export function accessRoutes(settings: AccessSettings) {
                 ? 'DEVICE_ERROR'
                 : 'MATCH',
           templateRef: input.scenario === 'NO_MATCH' ? undefined : input.templateRef,
-          errorCode: input.scenario === 'SCANNER_UNAVAILABLE' ? 'SIMULATED_SCANNER_ERROR' : undefined,
+          errorCode:
+            input.scenario === 'SCANNER_UNAVAILABLE' ? 'SIMULATED_SCANNER_ERROR' : undefined,
           occurredAt: new Date(),
           failEligibility: input.scenario === 'AUTHORIZATION_UNAVAILABLE',
         },

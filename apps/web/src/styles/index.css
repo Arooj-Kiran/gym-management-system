@@ -41,6 +41,15 @@
   --color-sidebar-fg-muted: var(--sidebar-fg-muted);
   --color-sidebar-active: var(--sidebar-active);
   --color-sidebar-accent: var(--sidebar-accent);
+  --color-kiosk-bg: var(--kiosk-bg);
+  --color-kiosk-panel: var(--kiosk-panel);
+  --color-kiosk-fg: var(--kiosk-fg);
+  --color-kiosk-fg-muted: var(--kiosk-fg-muted);
+  --color-kiosk-granted: var(--kiosk-granted);
+  --color-kiosk-denied: var(--kiosk-denied);
+  --color-kiosk-unknown: var(--kiosk-unknown);
+  --color-kiosk-sim-bg: var(--kiosk-sim-bg);
+  --color-kiosk-sim-fg: var(--kiosk-sim-fg);
   --color-overlay: var(--overlay);
   --color-focus: var(--focus-ring);
 
@@ -62,6 +71,7 @@
   --animate-fade-in: fade-in 160ms ease-out;
   --animate-pop-in: pop-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
   --animate-slide-in-left: slide-in-left 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-countdown: countdown 5s linear forwards;
 
   @keyframes fade-in {
     from {
@@ -77,6 +87,11 @@
   @keyframes slide-in-left {
     from {
       transform: translateX(-100%);
+    }
+  }
+  @keyframes countdown {
+    to {
+      transform: scaleX(0);
     }
   }
 }

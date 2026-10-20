@@ -58,9 +58,9 @@ describe('loadConfig', () => {
   });
 
   it('allows the simulated scanner outside production', () => {
-    expect(loadConfig({ ...base, BIOMETRIC_SIMULATOR_ENABLED: 'true' }).biometricSimulatorEnabled).toBe(
-      true,
-    );
+    expect(
+      loadConfig({ ...base, BIOMETRIC_SIMULATOR_ENABLED: 'true' }).biometricSimulatorEnabled,
+    ).toBe(true);
   });
 
   it('refuses to start with the simulated scanner enabled in production (PLAN §6.5)', () => {

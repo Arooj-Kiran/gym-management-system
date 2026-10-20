@@ -1,13 +1,22 @@
-import { permissionScope, ROLE_LABELS, type DashboardMembershipCounts } from '@gms/shared';
+import {
+  permissionScope,
+  ROLE_LABELS,
+  type DashboardAttendance,
+  type DashboardMembershipCounts,
+} from '@gms/shared';
 import {
   ArrowRight,
+  CalendarCheck,
   CircleCheck,
   Circle,
   Contact,
+  DoorOpen,
   History,
   KeyRound,
+  ScanLine,
   ScrollText,
   Settings,
+  ShieldAlert,
   Tags,
   Ticket,
   UserPlus,
@@ -23,7 +32,8 @@ import { PageHeader } from '../../components/ui/page-header';
 import { EmptyState, ErrorState, ListSkeleton, Skeleton } from '../../components/ui/states';
 import { useCan, useSession } from '../../lib/auth';
 import { cn } from '../../lib/cn';
-import { formatRelative } from '../../lib/format';
+import { formatRelative, formatTime, gymTodayIso } from '../../lib/format';
+import { SourceBadge } from '../access/access-badges';
 import { useAuditLogs } from '../audit/audit-api';
 import { auditActorName, auditLabel, auditTone } from '../audit/audit-format';
 import { useMemberList } from '../members/members-api';
@@ -159,6 +169,105 @@ function MemberOverview() {
     );
   if (!summary.data.members) return null;
   return <MemberStats {...summary.data.members} />;
+}
+
+const TODAY_DENIED = '/access-log?result=DENIED&from={today}&to={today}';
+
+function AttendanceStats({
+  attendance,
+  canReadLog,
+  today,
+}: {
+  attendance: DashboardAttendance;
+  canReadLog: boolean;
+  today: string;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <Stat
+        label="Check-ins today"
+        value={attendance.checkInsToday}
+        loading={false}
+        hint={
+          <Link to="/attendance" className="text-primary-text hover:underline">
+            Today&apos;s attendance
+          </Link>
+        }
+      />
+      <Stat
+        label="Denied at the entrance today"
+        value={attendance.deniedToday}
+        loading={false}
+        hint={
+          canReadLog && attendance.deniedToday > 0 ? (
+            <Link
+              to={TODAY_DENIED.replaceAll('{today}', today)}
+              className="text-primary-text hover:underline"
+            >
+              See why they were denied
+            </Link>
+          ) : (
+            'Includes fingerprints that were not recognised.'
+          )
+        }
+      />
+    </div>
+  );
+}
+
+function RecentCheckIns({ attendance }: { attendance: DashboardAttendance }) {
+  return (
+    <Card>
+      <CardHeader
+        title="Recent check-ins"
+        description="Latest granted entries today"
+        action={
+          <Link to="/attendance" className="text-13 font-medium text-primary-text hover:underline">
+            All of today
+          </Link>
+        }
+      />
+      {attendance.recentCheckIns.length === 0 ? (
+        <EmptyState
+          icon={<CalendarCheck aria-hidden />}
+          title="No check-ins yet today"
+          description="Scans and manual check-ins appear here as members arrive."
+        />
+      ) : (
+        <ul className="divide-y divide-border">
+          {attendance.recentCheckIns.map((item) => (
+            <li
+              key={item.id}
+              className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 sm:px-5"
+            >
+              <time
+                dateTime={item.checkInAt}
+                className="w-12 shrink-0 text-13 font-medium text-fg tabular-nums"
+              >
+                {formatTime(item.checkInAt)}
+              </time>
+              <span className="min-w-0 flex-1 truncate text-13">
+                <Link
+                  to={`/members/${item.member.id}?tab=attendance`}
+                  className="font-medium text-fg hover:underline"
+                >
+                  {item.member.firstName} {item.member.lastName}
+                </Link>
+                <span className="font-mono text-xs text-fg-muted"> {item.member.memberCode}</span>
+              </span>
+              <SourceBadge source={item.source} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+/** Today at the entrance, for roles that see the whole gym's attendance. */
+function useAttendanceToday() {
+  const summary = useDashboardSummary();
+  return summary.data?.attendance ?? null;
 }
 
 interface MembershipCell {
@@ -464,7 +573,32 @@ export function DashboardPage() {
   // Mirrors the server: whole-gym member figures need unscoped member access.
   const seesMembers = permissionScope(role, 'members:read') === 'ALL';
 
+  const attendance = useAttendanceToday();
   const actions: QuickAction[] = [];
+  if (can('access:monitor')) {
+    actions.push({
+      to: '/check-in',
+      label: 'Check-in desk',
+      description: 'Live entrance screen and manual check-in',
+      icon: DoorOpen,
+    });
+  }
+  if (attendance) {
+    actions.push({
+      to: '/attendance',
+      label: 'Attendance',
+      description: 'Who checked in, by day; check-outs and corrections',
+      icon: CalendarCheck,
+    });
+  }
+  if (can('access:read-log')) {
+    actions.push({
+      to: '/access-log',
+      label: 'Access log',
+      description: 'Every entry attempt, granted or denied, with the reason',
+      icon: ShieldAlert,
+    });
+  }
   if (seesMembers && can('members:create')) {
     actions.push({
       to: '/members?new=1',
@@ -515,6 +649,14 @@ export function DashboardPage() {
       icon: UsersRound,
     });
   }
+  if (can('devices:manage')) {
+    actions.push({
+      to: '/devices',
+      label: 'Scanners',
+      description: 'Add scanners, rotate keys and check their health',
+      icon: ScanLine,
+    });
+  }
   if (can('settings:read')) {
     actions.push({
       to: '/settings',
@@ -552,12 +694,19 @@ export function DashboardPage() {
         description={
           seesMembers
             ? 'Here is the current state of your members and recent front-desk activity.'
-            : 'Your workspace. Your assigned members, check-ins and classes are added to this screen as they are switched on for the gym.'
+            : 'Your workspace. Your assigned members and classes are added to this screen as they are switched on for the gym.'
         }
       />
 
       <div className="flex flex-col gap-6">
         {seesMembers && <MemberOverview />}
+        {attendance && (
+          <AttendanceStats
+            attendance={attendance}
+            canReadLog={can('access:read-log')}
+            today={gymTodayIso()}
+          />
+        )}
         {seesMembers && can('memberships:read') && <MembershipOverview />}
         {can('staff:read') && <StaffStats />}
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -565,8 +714,9 @@ export function DashboardPage() {
             {can('settings:manage') && <SetupChecklist />}
             <QuickActions actions={actions} />
           </div>
-          {(seesMembers || can('audit:read')) && (
+          {(seesMembers || attendance || can('audit:read')) && (
             <div className="flex flex-col gap-6">
+              {attendance && <RecentCheckIns attendance={attendance} />}
               {seesMembers && <MemberActivity />}
               {can('audit:read') && <RecentActivity />}
             </div>

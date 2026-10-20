@@ -437,9 +437,11 @@ describe('Scenario 5: cancel and the next scan', () => {
     const scanPromise = scan().then((response) => response);
     // Wait until the scan is really blocked on the lock before committing.
     for (let i = 0; i < 50; i += 1) {
-      const [row] = await db.execute<{ n: number }>(
-        sql`select count(*)::int as n from pg_stat_activity where datname = current_database() and wait_event_type = 'Lock'`,
-      ).then((result) => result.rows);
+      const [row] = await db
+        .execute<{ n: number }>(
+          sql`select count(*)::int as n from pg_stat_activity where datname = current_database() and wait_event_type = 'Lock'`,
+        )
+        .then((result) => result.rows);
       if (row!.n > 0) break;
       await new Promise((resolve) => setTimeout(resolve, 20));
     }
@@ -594,7 +596,10 @@ describe('Scenario 9: authorization cannot be verified', () => {
     });
 
     it('a wrong key, an unknown device and a malformed header', async () => {
-      const wrongKey = { ...scanner, authorization: `Device ${scanner.device.id}.${'x'.repeat(43)}` };
+      const wrongKey = {
+        ...scanner,
+        authorization: `Device ${scanner.device.id}.${'x'.repeat(43)}`,
+      };
       const unknown = { ...scanner, authorization: `Device ${randomUUID()}.${scanner.key}` };
       const malformed = { ...scanner, authorization: 'Bearer nonsense' };
       for (const device of [wrongKey, unknown, malformed]) {
@@ -756,7 +761,10 @@ describe('append-only logs', () => {
     await activeMembership();
     await scan();
     await expect(
-      db.update(accessAttempts).set({ reason: 'GRANTED' }).where(sql`true`),
+      db
+        .update(accessAttempts)
+        .set({ reason: 'GRANTED' })
+        .where(sql`true`),
     ).rejects.toThrow();
     await expect(db.delete(accessAttempts).where(sql`true`)).rejects.toThrow();
     expect(await allAttempts()).toHaveLength(1);

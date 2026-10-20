@@ -14,6 +14,10 @@ const ADMIN_PAGES = [
   { path: '/memberships', heading: 'Memberships' },
   { path: '/memberships?expiring=7', heading: 'Expiring soon' },
   { path: '/plans', heading: 'Membership plans' },
+  { path: '/check-in', heading: 'Check-in desk' },
+  { path: '/attendance', heading: 'Attendance' },
+  { path: '/access-log', heading: 'Access log' },
+  { path: '/devices', heading: 'Scanners' },
   { path: '/staff', heading: 'Staff' },
   { path: '/settings', heading: 'Settings' },
   { path: '/audit-log', heading: 'Audit log' },
@@ -23,6 +27,7 @@ const ADMIN_PAGES = [
 const PORTAL_PAGES = [
   { path: '/portal', heading: 'My profile' },
   { path: '/portal/membership', heading: 'My membership' },
+  { path: '/portal/attendance', heading: 'My attendance' },
   { path: '/portal/plans', heading: 'Membership plans' },
   { path: '/account', heading: 'My account' },
 ];
@@ -71,12 +76,14 @@ for (const viewport of VIEWPORTS) {
       await expectNoHorizontalOverflow(page);
       await expectNoAxeViolations(page);
 
-      await page.getByRole('tab', { name: 'Membership' }).click();
-      await expect(page.getByRole('tabpanel', { name: 'Membership' })).toBeVisible();
-      await expect(page.getByRole('status', { name: /loading/i })).toHaveCount(0);
-      await expect(page.getByRole('alert')).toHaveCount(0);
-      await expectNoHorizontalOverflow(page);
-      await expectNoAxeViolations(page);
+      for (const tab of ['Membership', 'Attendance']) {
+        await page.getByRole('tab', { name: tab }).click();
+        await expect(page.getByRole('tabpanel', { name: tab })).toBeVisible();
+        await expect(page.getByRole('status', { name: /loading/i })).toHaveCount(0);
+        await expect(page.getByRole('alert')).toHaveCount(0);
+        await expectNoHorizontalOverflow(page);
+        await expectNoAxeViolations(page);
+      }
     });
 
     test('member portal screens fit and are accessible', async ({ page }) => {

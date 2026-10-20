@@ -7,16 +7,8 @@ import { accessDevices } from '../../db/schema';
 import { AppError } from '../../lib/errors';
 import { safeEqual, sha256Hex } from '../../lib/tokens';
 
+/** `req.device` is declared in `types/express.d.ts`. */
 export type AccessDevice = typeof accessDevices.$inferSelect;
-
-declare global {
-  namespace Express {
-    interface Request {
-      /** Set by `requireDevice` on routes the biometric agent calls. */
-      device?: AccessDevice;
-    }
-  }
-}
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

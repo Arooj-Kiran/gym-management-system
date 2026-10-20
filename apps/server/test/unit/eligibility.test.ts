@@ -9,7 +9,11 @@ import {
   type GymNow,
 } from '../../src/modules/access/eligibility';
 
-const MEMBER: EligibilityMember = { archived: false, accountStatus: 'ACTIVE', accessBlocked: false };
+const MEMBER: EligibilityMember = {
+  archived: false,
+  accountStatus: 'ACTIVE',
+  accessBlocked: false,
+};
 // Monday 19 October 2026, 10:30 gym time.
 const NOW: GymNow = { date: '2026-10-19', isoWeekday: 1, time: '10:30' };
 
@@ -96,8 +100,16 @@ describe('evaluateEligibility', () => {
   });
 
   it('reports the upcoming period before the expired one', () => {
-    const expired = membership({ status: 'EXPIRED', startDate: '2026-09-01', endDate: '2026-09-30' });
-    const pending = membership({ status: 'PENDING', startDate: '2026-10-25', endDate: '2026-11-24' });
+    const expired = membership({
+      status: 'EXPIRED',
+      startDate: '2026-09-01',
+      endDate: '2026-09-30',
+    });
+    const pending = membership({
+      status: 'PENDING',
+      startDate: '2026-10-25',
+      endDate: '2026-11-24',
+    });
     expect(reasonOf([expired, pending])).toBe('MEMBERSHIP_NOT_ACTIVATED');
   });
 
@@ -112,12 +124,8 @@ describe('evaluateEligibility', () => {
 
     it('grants inside the window and denies outside it', () => {
       expect(reasonOf([offPeak()])).toBe('GRANTED');
-      expect(reasonOf([offPeak()], MEMBER, { ...NOW, time: '12:30' })).toBe(
-        'OUTSIDE_ACCESS_HOURS',
-      );
-      expect(reasonOf([offPeak()], MEMBER, { ...NOW, isoWeekday: 6 })).toBe(
-        'OUTSIDE_ACCESS_HOURS',
-      );
+      expect(reasonOf([offPeak()], MEMBER, { ...NOW, time: '12:30' })).toBe('OUTSIDE_ACCESS_HOURS');
+      expect(reasonOf([offPeak()], MEMBER, { ...NOW, isoWeekday: 6 })).toBe('OUTSIDE_ACCESS_HOURS');
     });
 
     it('treats the start as inclusive and the end as exclusive', () => {
@@ -146,7 +154,11 @@ describe('mostRelevantMembership', () => {
   });
 
   it('falls back to a cancelled future period', () => {
-    const future = membership({ status: 'CANCELLED', startDate: '2026-11-01', endDate: '2026-11-30' });
+    const future = membership({
+      status: 'CANCELLED',
+      startDate: '2026-11-01',
+      endDate: '2026-11-30',
+    });
     expect(mostRelevantMembership([future], NOW.date)).toBe(future);
   });
 });

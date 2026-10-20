@@ -33,6 +33,12 @@
     "lastName": "Hussain",
     "phone": "+923001110001"
   },
+  "accessMember": {
+    "email": "e2e.access@example.test",
+    "firstName": "Kamran",
+    "lastName": "Siddiqui",
+    "phone": "+923001110002"
+  },
   "plan": {
     "name": "Standard Monthly",
     "priceMinor": 600000

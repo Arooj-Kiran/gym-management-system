@@ -4,7 +4,6 @@ import {
   ACCESS_RESULTS,
   ACCESS_SOURCES,
   DEVICE_HEALTH,
-  DEVICE_STATUSES,
   DEVICE_TYPES,
   MATCH_RESULTS,
   SIMULATOR_SCENARIOS,
@@ -15,7 +14,13 @@ import {
   type DeviceStatus,
   type DeviceType,
 } from '../enums';
-import { listQueryBase, nameSchema, optionalIsoDateSchema, optionalTextSchema, reasonSchema } from './common';
+import {
+  listQueryBase,
+  nameSchema,
+  optionalIsoDateSchema,
+  optionalTextSchema,
+  reasonSchema,
+} from './common';
 
 /** A device-side user or template ID. Never an image or template (PLAN §3.6). */
 export const templateRefSchema = z

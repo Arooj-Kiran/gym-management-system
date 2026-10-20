@@ -1,4 +1,6 @@
 import type {
+  AccessAttemptListQuery,
+  AttendanceListQuery,
   AuditListQuery,
   MemberListQuery,
   MembershipListQuery,
@@ -21,6 +23,25 @@ export const queryKeys = {
     membershipEvents: (id: string) => ['members', 'membership-events', id] as const,
     duplicates: (query: Record<string, string | undefined>) =>
       ['members', 'duplicates', query] as const,
+    biometric: (id: string) => ['members', 'biometric', id] as const,
+  },
+  access: {
+    all: ['access'] as const,
+    devices: ['access', 'devices'] as const,
+    fixtures: ['access', 'simulator-fixtures'] as const,
+    attempts: (query: AccessAttemptListQuery) => ['access', 'attempts', query] as const,
+    memberAttempts: (id: string, query: AccessAttemptListQuery) =>
+      ['access', 'member-attempts', id, query] as const,
+  },
+  attendance: {
+    all: ['attendance'] as const,
+    list: (query: AttendanceListQuery) => ['attendance', 'list', query] as const,
+    member: (id: string, query: AttendanceListQuery) =>
+      ['attendance', 'member', id, query] as const,
+    corrections: (id: string) => ['attendance', 'corrections', id] as const,
+  },
+  devices: {
+    all: ['devices'] as const,
   },
   plans: {
     all: ['plans'] as const,
@@ -34,6 +55,7 @@ export const queryKeys = {
     profile: ['portal', 'profile'] as const,
     membership: ['portal', 'membership'] as const,
     memberships: ['portal', 'memberships'] as const,
+    attendance: (page: number) => ['portal', 'attendance', page] as const,
   },
   dashboard: {
     all: ['dashboard'] as const,

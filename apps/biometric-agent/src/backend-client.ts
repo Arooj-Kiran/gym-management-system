@@ -118,16 +118,25 @@ export class BackendClient {
   }
 
   async heartbeat(health: DeviceHealth, errorCode?: string): Promise<DeviceHeartbeatResponse> {
-    const body = await this.call('/devices/heartbeat', { health, ...(errorCode ? { errorCode } : {}) });
+    const body = await this.call('/devices/heartbeat', {
+      health,
+      ...(errorCode ? { errorCode } : {}),
+    });
     return parseOrThrow(heartbeatResponseSchema, body);
   }
 
   async uploadOfflineDenials(denials: { eventId: string; occurredAt: string }[]) {
-    return parseOrThrow(offlineUploadSchema, await this.call('/access/offline-denials', { denials }));
+    return parseOrThrow(
+      offlineUploadSchema,
+      await this.call('/access/offline-denials', { denials }),
+    );
   }
 
   async confirmDeletion(enrollmentId: string) {
-    await this.call(`/biometric/enrollments/${encodeURIComponent(enrollmentId)}/confirm-deletion`, {});
+    await this.call(
+      `/biometric/enrollments/${encodeURIComponent(enrollmentId)}/confirm-deletion`,
+      {},
+    );
   }
 
   /** For non-decision calls: any non-2xx is an error. */
@@ -143,7 +152,10 @@ export class BackendClient {
       );
     }
     if (!response.ok) {
-      throw new BackendError(`The backend refused the request (HTTP ${response.status}).`, response.status);
+      throw new BackendError(
+        `The backend refused the request (HTTP ${response.status}).`,
+        response.status,
+      );
     }
     try {
       return JSON.parse(text);

@@ -46,6 +46,17 @@
   --sidebar-active: #1f3556;
   --sidebar-accent: #4b8bff;
 
+  /* Entrance (kiosk) screen: always dark, readable from a distance. AA on --kiosk-bg. */
+  --kiosk-bg: #0b1424;
+  --kiosk-panel: #13203a;
+  --kiosk-fg: #f3f6fb;
+  --kiosk-fg-muted: #a7b4c8;
+  --kiosk-granted: #34d27b;
+  --kiosk-denied: #ff8a8a;
+  --kiosk-unknown: #f7c46c;
+  --kiosk-sim-bg: #f7c46c;
+  --kiosk-sim-fg: #2b1a02;
+
   --focus-ring: #2563eb;
   --overlay: rgb(9 15 26 / 0.55);
 

@@ -72,7 +72,10 @@ describe('Outbox (denial facts only)', () => {
   it('keeps the unsent remainder when a later batch fails', async () => {
     const file = path.join(dir, 'outbox.jsonl');
     const total = OFFLINE_DENIALS_MAX + 2;
-    await appendFile(file, Array.from({ length: total }, (_, i) => `${JSON.stringify(fact(i))}\n`).join(''));
+    await appendFile(
+      file,
+      Array.from({ length: total }, (_, i) => `${JSON.stringify(fact(i))}\n`).join(''),
+    );
     const outbox = new Outbox(file);
     let calls = 0;
     const uploader: DenialUploader = {

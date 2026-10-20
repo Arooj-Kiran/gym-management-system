@@ -70,7 +70,14 @@ async function setup(routes: Routes = {}, options: { backendUrl?: string; relay?
     deviceKey: DEVICE_KEY,
     requestTimeoutMs: 1000,
   });
-  const agent = new Agent({ adapter, client, outbox, relay, display: view.display, heartbeatSeconds: 3600 });
+  const agent = new Agent({
+    adapter,
+    client,
+    outbox,
+    relay,
+    display: view.display,
+    heartbeatSeconds: 3600,
+  });
   closers.push(() => agent.stop());
   return { agent, adapter, outbox, relay, requests, ...view };
 }
@@ -152,7 +159,10 @@ describe('Agent', () => {
 
   it('uploads the outbox on the next heartbeat', async () => {
     const { agent, outbox, requests } = await setup();
-    await outbox.append({ eventId: '0b8e9f6a-1c2d-4e3f-8a9b-0c1d2e3f4a5b', occurredAt: '2026-10-19T09:00:00.000Z' });
+    await outbox.append({
+      eventId: '0b8e9f6a-1c2d-4e3f-8a9b-0c1d2e3f4a5b',
+      occurredAt: '2026-10-19T09:00:00.000Z',
+    });
     const result = await agent.heartbeat();
     expect(result).toMatchObject({ ok: true, uploaded: 1 });
     expect(requests.map((request) => request.url)).toContain('/access/offline-denials');

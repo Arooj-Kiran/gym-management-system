@@ -30,10 +30,38 @@ const ACCESS_MEMBERS: {
   status: Extract<MembershipStatus, 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'SUSPENDED'>;
   startedDaysAgo: number;
 }[] = [
-  { firstName: 'Ayesha', lastName: 'Kamal', phone: '+923000000131', ref: 'SIM-0001', status: 'ACTIVE', startedDaysAgo: 10 },
-  { firstName: 'Usman', lastName: 'Qureshi', phone: '+923000000132', ref: 'SIM-0002', status: 'EXPIRED', startedDaysAgo: 50 },
-  { firstName: 'Sana', lastName: 'Mir', phone: '+923000000133', ref: 'SIM-0003', status: 'CANCELLED', startedDaysAgo: 6 },
-  { firstName: 'Zeeshan', lastName: 'Ali', phone: '+923000000134', ref: 'SIM-0004', status: 'SUSPENDED', startedDaysAgo: 12 },
+  {
+    firstName: 'Ayesha',
+    lastName: 'Kamal',
+    phone: '+923000000131',
+    ref: 'SIM-0001',
+    status: 'ACTIVE',
+    startedDaysAgo: 10,
+  },
+  {
+    firstName: 'Usman',
+    lastName: 'Qureshi',
+    phone: '+923000000132',
+    ref: 'SIM-0002',
+    status: 'EXPIRED',
+    startedDaysAgo: 50,
+  },
+  {
+    firstName: 'Sana',
+    lastName: 'Mir',
+    phone: '+923000000133',
+    ref: 'SIM-0003',
+    status: 'CANCELLED',
+    startedDaysAgo: 6,
+  },
+  {
+    firstName: 'Zeeshan',
+    lastName: 'Ali',
+    phone: '+923000000134',
+    ref: 'SIM-0004',
+    status: 'SUSPENDED',
+    startedDaysAgo: 12,
+  },
 ];
 
 export async function seedAccessDemo(tx: DbExecutor, ctx: RequestContext, today: string) {
@@ -101,7 +129,11 @@ export async function seedAccessDemo(tx: DbExecutor, ctx: RequestContext, today:
       action: 'MEMBER_CREATED',
       entityType: 'MEMBER',
       entityId: member!.id,
-      after: { memberCode: member!.memberCode, firstName: entry.firstName, lastName: entry.lastName },
+      after: {
+        memberCode: member!.memberCode,
+        firstName: entry.firstName,
+        lastName: entry.lastName,
+      },
       reason: 'Demo data seed',
     });
 
@@ -126,9 +158,11 @@ export async function seedAccessDemo(tx: DbExecutor, ctx: RequestContext, today:
         cancellationReason: entry.status === 'CANCELLED' ? 'Demo: moved to another city' : null,
       })
       .returning({ id: memberships.id });
-    const events: { eventType: 'CREATED' | 'ACTIVATED' | 'SUSPENDED' | 'CANCELLED' | 'EXPIRED'; from: MembershipStatus | null; to: MembershipStatus }[] = [
-      { eventType: 'CREATED', from: null, to: 'PENDING' },
-    ];
+    const events: {
+      eventType: 'CREATED' | 'ACTIVATED' | 'SUSPENDED' | 'CANCELLED' | 'EXPIRED';
+      from: MembershipStatus | null;
+      to: MembershipStatus;
+    }[] = [{ eventType: 'CREATED', from: null, to: 'PENDING' }];
     if (entry.status === 'CANCELLED') {
       events.push({ eventType: 'CANCELLED', from: 'PENDING', to: 'CANCELLED' });
     } else {

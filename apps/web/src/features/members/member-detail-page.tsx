@@ -18,6 +18,8 @@ import { EmptyState, ErrorState, Skeleton } from '../../components/ui/states';
 import { TabPanel, Tabs } from '../../components/ui/tabs';
 import { fullName, useCan } from '../../lib/auth';
 import { formatDate, formatPhone } from '../../lib/format';
+import { MemberAttendanceTab } from '../attendance/member-attendance-tab';
+import { FingerprintCard } from '../biometrics/fingerprint-card';
 import { MemberMembershipTab } from '../memberships/member-membership-tab';
 import { MembershipStatusBadge } from '../memberships/membership-status-badge';
 import { DuplicatePhoneDialog } from './duplicate-phone-dialog';
@@ -160,8 +162,9 @@ function DetailSkeleton() {
 }
 
 const TABS = [
-  { value: 'profile', label: 'Profile' },
-  { value: 'membership', label: 'Membership' },
+  { value: 'profile', label: 'Profile', permission: null },
+  { value: 'membership', label: 'Membership', permission: 'memberships:read' },
+  { value: 'attendance', label: 'Attendance', permission: 'attendance:read' },
 ] as const;
 type Tab = (typeof TABS)[number]['value'];
 
@@ -170,8 +173,8 @@ export function MemberDetailPage() {
   const can = useCan();
   const member = useMember(id);
   const [params, setParams] = useSearchParams();
-  const showMemberships = can('memberships:read');
-  const tab: Tab = showMemberships && params.get('tab') === 'membership' ? 'membership' : 'profile';
+  const tabs = TABS.filter((option) => option.permission === null || can(option.permission));
+  const tab: Tab = tabs.find((option) => option.value === params.get('tab'))?.value ?? 'profile';
   const selectTab = (next: Tab) =>
     setParams(next === 'profile' ? {} : { tab: next }, { replace: true });
 
@@ -288,11 +291,11 @@ export function MemberDetailPage() {
         </div>
       )}
 
-      {showMemberships && (
+      {tabs.length > 1 && (
         <Tabs
           label="Member sections"
           idPrefix="member"
-          tabs={[...TABS]}
+          tabs={tabs.map(({ value, label }) => ({ value, label }))}
           value={tab}
           onChange={selectTab}
           className="mb-6"
@@ -300,9 +303,15 @@ export function MemberDetailPage() {
       )}
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        {showMemberships ? (
+        {tabs.length > 1 ? (
           <TabPanel idPrefix="member" value={tab}>
-            {tab === 'membership' ? <MemberMembershipTab member={record} /> : details}
+            {tab === 'membership' ? (
+              <MemberMembershipTab member={record} />
+            ) : tab === 'attendance' ? (
+              <MemberAttendanceTab member={record} />
+            ) : (
+              details
+            )}
           </TabPanel>
         ) : (
           details
@@ -310,6 +319,9 @@ export function MemberDetailPage() {
         <div className="flex flex-col gap-6">
           <PhotoCard member={record} canUpdate={canUpdate} />
           <EntryAccessCard member={record} canRestrict={can('access:restrict')} />
+          {can('biometrics:read-status') && (
+            <FingerprintCard member={record} canManage={can('biometrics:manage')} />
+          )}
           <PortalAccountCard member={record} canUpdate={canUpdate} />
           <RecordCard member={record} canArchive={can('members:archive')} />
         </div>

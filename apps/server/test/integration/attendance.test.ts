@@ -33,7 +33,10 @@ beforeEach(async () => {
   session = await signIn(app, admin);
   const plan = await createPlan({ name: 'Monthly Standard' });
   member = await createMember({ firstName: 'Hamza', lastName: 'Qureshi' });
-  await createMembership(member, plan, { startDate: addDays(today, -5), endDate: addDays(today, 25) });
+  await createMembership(member, plan, {
+    startDate: addDays(today, -5),
+    endDate: addDays(today, 25),
+  });
   scanner = await createDevice();
   await enrollMember(member, scanner.device, 'SIM-0001', admin);
 });
@@ -139,7 +142,9 @@ describe('corrections', () => {
       'CHECK_IN_AT',
       'CHECK_OUT_AT',
     ]);
-    const checkInChange = history.body.data.find((c: { field: string }) => c.field === 'CHECK_IN_AT');
+    const checkInChange = history.body.data.find(
+      (c: { field: string }) => c.field === 'CHECK_IN_AT',
+    );
     expect(checkInChange).toMatchObject({
       oldValue: record.checkInAt.toISOString(),
       newValue: newIn,
@@ -195,7 +200,10 @@ describe('roles and scope', () => {
     expect((await trainer.get(`/members/${member.id}/attendance`)).status).toBe(403);
     const [record] = await db.select().from(attendanceRecords);
     expect((await trainer.get(`/attendance/${record!.id}/corrections`)).status).toBe(403);
-    expect((await trainer.post('/attendance/manual-check-in', { memberId: member.id, reason: 'x' })).status).toBe(403);
+    expect(
+      (await trainer.post('/attendance/manual-check-in', { memberId: member.id, reason: 'x' }))
+        .status,
+    ).toBe(403);
   });
 
   it('a member sees only their own valid check-ins at /me/attendance', async () => {

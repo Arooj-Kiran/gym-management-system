@@ -1,6 +1,6 @@
 /**
  * Prepares the TEST database for Playwright: reset, migrate, then create the fictional staff
- * accounts, member (with portal login) and plan listed in apps/web/e2e/users.json. Refuses to run
+ * accounts, members (with portal logins) and plan listed in apps/web/e2e/users.json. Refuses to run
  * outside NODE_ENV=test (guarded in reset-db).
  */
 import { readFileSync } from 'node:fs';
@@ -20,6 +20,7 @@ interface E2eUsers {
   users: Record<StaffRole, E2eUser>;
   forcedChange: E2eUser;
   member: E2eUser & { phone: string };
+  accessMember: E2eUser & { phone: string };
   plan: { name: string; priceMinor: number };
 }
 
@@ -41,9 +42,11 @@ try {
     password: fixtures.password,
     mustChangePassword: true,
   });
-  const { phone, ...member } = fixtures.member;
-  const login = await createUser({ ...member, role: 'MEMBER', password: fixtures.password });
-  await createMember({ ...member, phoneE164: phone, userId: login.id });
+  // Two portal members: one for the membership flow, one for the entrance (access) flow.
+  for (const { phone, ...member } of [fixtures.member, fixtures.accessMember]) {
+    const login = await createUser({ ...member, role: 'MEMBER', password: fixtures.password });
+    await createMember({ ...member, phoneE164: phone, userId: login.id });
+  }
   await createPlan({ ...fixtures.plan, benefits: ['Gym floor access', 'Locker'] });
   console.warn('E2E database prepared.');
 } finally {

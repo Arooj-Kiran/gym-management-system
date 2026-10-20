@@ -29,7 +29,9 @@ export function attendanceRoutes(settings: AccessSettings) {
     requirePermission('attendance:manual-check-in'),
     async (req, res) => {
       const { memberId, reason } = parseInput(manualCheckInSchema, req.body);
-      res.json(await decide({ kind: 'manual', memberId, reason, ctx: requestContext(req) }, settings));
+      res.json(
+        await decide({ kind: 'manual', memberId, reason, ctx: requestContext(req) }, settings),
+      );
     },
   );
 

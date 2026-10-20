@@ -105,17 +105,26 @@ export const accessAttempts = pgTable(
     index('access_attempts_member_occurred_idx').on(t.memberId, t.occurredAt.desc()),
     index('access_attempts_result_reason_occurred_idx').on(t.result, t.reason, t.occurredAt),
     index('access_attempts_attendance_idx').on(t.attendanceId),
-    check('access_attempts_result_matches_reason', sql`(${t.result} = 'GRANTED') = (${t.reason} = 'GRANTED')`),
+    check(
+      'access_attempts_result_matches_reason',
+      sql`(${t.result} = 'GRANTED') = (${t.reason} = 'GRANTED')`,
+    ),
     check(
       'access_attempts_granted_is_complete',
       sql`${t.result} = 'DENIED' or (${t.memberId} is not null and ${t.membershipId} is not null and ${t.attendanceId} is not null)`,
     ),
-    check('access_attempts_duplicate_is_granted', sql`not ${t.isDuplicate} or ${t.result} = 'GRANTED'`),
+    check(
+      'access_attempts_duplicate_is_granted',
+      sql`not ${t.isDuplicate} or ${t.result} = 'GRANTED'`,
+    ),
     check(
       'access_attempts_manual_is_verified',
       sql`(${t.source} = 'MANUAL') = (${t.verifiedByUserId} is not null)`,
     ),
-    check('access_attempts_manual_has_no_device', sql`${t.source} <> 'MANUAL' or ${t.deviceId} is null`),
+    check(
+      'access_attempts_manual_has_no_device',
+      sql`${t.source} <> 'MANUAL' or ${t.deviceId} is null`,
+    ),
     check(
       'access_attempts_outbox_is_denied',
       sql`not ${t.uploadedFromOutbox} or (${t.result} = 'DENIED' and ${t.reason} = 'AUTHORIZATION_UNAVAILABLE')`,
@@ -154,7 +163,10 @@ export const attendanceRecords = pgTable(
       'attendance_records_check_out_after_check_in',
       sql`${t.checkOutAt} is null or ${t.checkOutAt} > ${t.checkInAt}`,
     ),
-    check('attendance_records_manual_has_creator', sql`${t.source} <> 'MANUAL' or ${t.createdBy} is not null`),
+    check(
+      'attendance_records_manual_has_creator',
+      sql`${t.source} <> 'MANUAL' or ${t.createdBy} is not null`,
+    ),
   ],
 );
 

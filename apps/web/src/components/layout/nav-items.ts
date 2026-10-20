@@ -1,10 +1,14 @@
 import type { Permission } from '@gms/shared';
 import {
+  CalendarCheck,
   Contact,
+  DoorOpen,
   IdCard,
   LayoutDashboard,
+  ScanLine,
   ScrollText,
   Settings,
+  ShieldAlert,
   Tags,
   Ticket,
   UserRound,
@@ -61,10 +65,38 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    title: 'Entrance',
+    items: [
+      {
+        to: '/check-in',
+        label: 'Check-in desk',
+        icon: DoorOpen,
+        permission: 'access:monitor',
+        staffOnly: true,
+      },
+      {
+        to: '/attendance',
+        label: 'Attendance',
+        icon: CalendarCheck,
+        permission: 'attendance:read',
+        fullScope: true,
+        staffOnly: true,
+      },
+      {
+        to: '/access-log',
+        label: 'Access log',
+        icon: ShieldAlert,
+        permission: 'access:read-log',
+        staffOnly: true,
+      },
+    ],
+  },
+  {
     title: 'Membership',
     items: [
       { to: '/portal', label: 'My profile', icon: IdCard, memberOnly: true, end: true },
       { to: '/portal/membership', label: 'My membership', icon: Ticket, memberOnly: true },
+      { to: '/portal/attendance', label: 'My attendance', icon: CalendarCheck, memberOnly: true },
       { to: '/portal/plans', label: 'Plans', icon: Tags, memberOnly: true },
     ],
   },
@@ -72,6 +104,7 @@ export const NAV_SECTIONS: NavSection[] = [
     title: 'Administration',
     items: [
       { to: '/staff', label: 'Staff', icon: UsersRound, permission: 'staff:read' },
+      { to: '/devices', label: 'Scanners', icon: ScanLine, permission: 'devices:manage' },
       { to: '/audit-log', label: 'Audit log', icon: ScrollText, permission: 'audit:read' },
       { to: '/settings', label: 'Settings', icon: Settings, permission: 'settings:read' },
     ],

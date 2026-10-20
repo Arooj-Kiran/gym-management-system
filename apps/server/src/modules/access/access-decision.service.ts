@@ -128,7 +128,10 @@ async function readRecord(
     .where(
       'attemptId' in where
         ? eq(accessAttempts.id, where.attemptId)
-        : and(eq(accessAttempts.deviceId, where.deviceId), eq(accessAttempts.eventId, where.eventId)),
+        : and(
+            eq(accessAttempts.deviceId, where.deviceId),
+            eq(accessAttempts.eventId, where.eventId),
+          ),
     )
     .limit(1);
   if (!row) return null;
@@ -149,7 +152,8 @@ async function readRecord(
             photoKey: row.photoKey,
           }
         : null,
-    membership: row.planName && row.endDate ? { planName: row.planName, endDate: row.endDate } : null,
+    membership:
+      row.planName && row.endDate ? { planName: row.planName, endDate: row.endDate } : null,
   };
 }
 
@@ -446,9 +450,10 @@ export async function decide(input: DecisionInput, settings: AccessSettings) {
     if (error instanceof AppError) throw error;
     if (input.kind === 'device' && isUniqueViolation(error, EVENT_CONSTRAINT)) {
       // The same event raced in twice; the first one's decision stands.
-      const stored = await readRecord(db, { deviceId: input.device.id, eventId: input.eventId }).catch(
-        () => null,
-      );
+      const stored = await readRecord(db, {
+        deviceId: input.device.id,
+        eventId: input.eventId,
+      }).catch(() => null);
       if (stored) return toDecision(stored);
     }
     logger.error({ err: loggableError(error) }, 'Access decision failed; denying');
@@ -474,9 +479,8 @@ async function touchDevice(deviceId: string) {
 /** A scan from an unknown, disabled or wrongly keyed device. Logged and published, never decided. */
 export async function recordDeviceNotAuthorized(device: AccessDevice | null) {
   const occurredAt = new Date();
-  let attemptId: string | null = null;
+  let attemptId: string | null = randomUUID();
   try {
-    attemptId = randomUUID();
     await db.insert(accessAttempts).values({
       id: attemptId,
       occurredAt,

@@ -202,10 +202,7 @@ export async function withdrawConsent(memberId: string, reason: string, ctx: Req
         revokeReason: 'Consent withdrawn',
       })
       .where(
-        and(
-          eq(biometricEnrollments.memberId, memberId),
-          eq(biometricEnrollments.status, 'ACTIVE'),
-        ),
+        and(eq(biometricEnrollments.memberId, memberId), eq(biometricEnrollments.status, 'ACTIVE')),
       )
       .returning({ id: biometricEnrollments.id });
     await recordAudit(tx, ctx, {
@@ -252,7 +249,10 @@ async function nextSimulatedRef(tx: DbExecutor, deviceId: string): Promise<strin
     );
   const next = (row?.max ?? 0) + 1;
   if (next > SIM_REF_MAX) {
-    throw conflict(ERROR_CODES.TEMPLATE_REF_IN_USE, 'No free simulated IDs are left on this device.');
+    throw conflict(
+      ERROR_CODES.TEMPLATE_REF_IN_USE,
+      'No free simulated IDs are left on this device.',
+    );
   }
   return `${SIM_REF_PREFIX}${String(next).padStart(4, '0')}`;
 }
@@ -291,7 +291,10 @@ const providerOf = (device: AccessDevice) =>
 const alreadyEnrolled = () =>
   conflict(ERROR_CODES.ALREADY_ENROLLED, 'This member is already enrolled on this device.');
 const refInUse = () =>
-  conflict(ERROR_CODES.TEMPLATE_REF_IN_USE, 'This device user ID is already in use on this device.');
+  conflict(
+    ERROR_CODES.TEMPLATE_REF_IN_USE,
+    'This device user ID is already in use on this device.',
+  );
 
 /**
  * Links a member to a device-side user ID. The fingerprint itself is enrolled on the scanner;
@@ -397,7 +400,12 @@ export async function revokeEnrollment(id: string, reason: string, ctx: RequestC
     }
     await tx
       .update(biometricEnrollments)
-      .set({ status: 'REVOKED', revokedAt: new Date(), revokedBy: ctx.actorUserId, revokeReason: reason })
+      .set({
+        status: 'REVOKED',
+        revokedAt: new Date(),
+        revokedBy: ctx.actorUserId,
+        revokeReason: reason,
+      })
       .where(eq(biometricEnrollments.id, id));
     await recordAudit(tx, ctx, {
       action: 'BIOMETRIC_ENROLLMENT_REVOKED',

@@ -41,7 +41,9 @@ export class AgentConfigError extends Error {}
 export function loadAgentConfig(env: NodeJS.ProcessEnv = process.env): AgentConfig {
   const parsed = configSchema.safeParse(env);
   if (!parsed.success) {
-    const problems = parsed.error.issues.map((issue) => `  ${issue.path.join('.')}: ${issue.message}`);
+    const problems = parsed.error.issues.map(
+      (issue) => `  ${issue.path.join('.')}: ${issue.message}`,
+    );
     throw new AgentConfigError(`Invalid agent configuration:\n${problems.join('\n')}`);
   }
   const values = parsed.data;

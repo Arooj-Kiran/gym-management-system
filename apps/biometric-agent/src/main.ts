@@ -27,8 +27,10 @@ const consoleDisplay: AgentDisplay = {
   showResult(outcome) {
     const marker = outcome.granted ? 'OPEN ' : 'SHUT ';
     out(`[${marker}] ${outcome.title.toUpperCase()} — ${outcome.message}`);
-    if (outcome.decision) out(`         reason ${outcome.decision.reason}, source ${outcome.decision.source}`);
-    if (outcome.failure) out(`         backend: ${outcome.failure} (denial kept in the offline log)`);
+    if (outcome.decision)
+      out(`         reason ${outcome.decision.reason}, source ${outcome.decision.source}`);
+    if (outcome.failure)
+      out(`         backend: ${outcome.failure} (denial kept in the offline log)`);
   },
   info: (message) => out(`  ${message}`),
   warn: (message) => out(`  ! ${message}`),

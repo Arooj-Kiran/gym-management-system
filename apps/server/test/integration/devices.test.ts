@@ -122,21 +122,23 @@ describe('device registry', () => {
     const plan = await createPlan();
     const member = await createMember();
     const today = gymToday();
-    await createMembership(member, plan, { startDate: addDays(today, -1), endDate: addDays(today, 29) });
+    await createMembership(member, plan, {
+      startDate: addDays(today, -1),
+      endDate: addDays(today, 29),
+    });
     const scanner = await createDevice();
     await enrollMember(member, scanner.device, 'SIM-0001', admin);
     const scan = () =>
-      request(app)
-        .post('/api/v1/access/scan')
-        .set('Authorization', scanner.authorization)
-        .send({
-          eventId: randomUUID(),
-          matchResult: 'MATCH',
-          templateRef: 'SIM-0001',
-          occurredAt: new Date().toISOString(),
-        });
+      request(app).post('/api/v1/access/scan').set('Authorization', scanner.authorization).send({
+        eventId: randomUUID(),
+        matchResult: 'MATCH',
+        templateRef: 'SIM-0001',
+        occurredAt: new Date().toISOString(),
+      });
 
-    expect((await api().post(`/devices/${scanner.device.id}/disable`, { reason: 'Lost' })).status).toBe(200);
+    expect(
+      (await api().post(`/devices/${scanner.device.id}/disable`, { reason: 'Lost' })).status,
+    ).toBe(200);
     const denied = await scan();
     expect(denied.status).toBe(401);
     expect(denied.body.reason).toBe('DEVICE_NOT_AUTHORIZED');
@@ -155,7 +157,8 @@ describe('device registry', () => {
       const other = as(await signIn(app, await createUser({ role })));
       expect((await other.get('/devices')).status).toBe(403);
       expect(
-        (await other.post('/devices', { name: 'X', location: 'Y', deviceType: 'SIMULATED' })).status,
+        (await other.post('/devices', { name: 'X', location: 'Y', deviceType: 'SIMULATED' }))
+          .status,
       ).toBe(403);
     }
   });
@@ -199,8 +202,8 @@ describe('heartbeat', () => {
   it('rejects unknown fields and a missing key', async () => {
     const scanner = await createDevice();
     expect((await heartbeat(scanner.authorization, { health: 'OK', extra: 1 })).status).toBe(400);
-    expect((await request(app).post('/api/v1/devices/heartbeat').send({ health: 'OK' })).status).toBe(
-      401,
-    );
+    expect(
+      (await request(app).post('/api/v1/devices/heartbeat').send({ health: 'OK' })).status,
+    ).toBe(401);
   });
 });

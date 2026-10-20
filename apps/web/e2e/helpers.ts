@@ -8,6 +8,8 @@ export const USERS = fixtures.users;
 export const FORCED_CHANGE = fixtures.forcedChange;
 /** A member with a portal login; their phone is reused to trigger the duplicate-phone warning. */
 export const MEMBER = fixtures.member;
+/** A member with a portal login used only by the entrance (access) flow. */
+export const ACCESS_MEMBER = fixtures.accessMember;
 export const PLAN = fixtures.plan;
 
 export const VIEWPORTS = [

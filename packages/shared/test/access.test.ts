@@ -46,7 +46,11 @@ describe('kioskMessage (PLAN §6.4)', () => {
       'Membership expired on 1 Oct 2026.',
     );
     expect(kioskMessage('MEMBERSHIP_SUSPENDED').message).toBe('Membership suspended.');
-    for (const reason of ['MEMBERSHIP_NOT_ACTIVATED', 'MEMBERSHIP_NOT_STARTED', 'NO_MEMBERSHIP'] as const) {
+    for (const reason of [
+      'MEMBERSHIP_NOT_ACTIVATED',
+      'MEMBERSHIP_NOT_STARTED',
+      'NO_MEMBERSHIP',
+    ] as const) {
       expect(kioskMessage(reason).message).toBe('No active membership for today.');
     }
     expect(kioskMessage('MEMBER_NOT_RECOGNIZED')).toEqual({
@@ -152,8 +156,7 @@ describe('device, consent, enrollment and correction schemas', () => {
       attendanceCorrectionSchema.safeParse({ status: 'VOIDED', reason: 'Scanned twice' }).success,
     ).toBe(true);
     expect(
-      attendanceCorrectionSchema.safeParse({ checkOutAt: null, reason: 'Wrong check-out' })
-        .success,
+      attendanceCorrectionSchema.safeParse({ checkOutAt: null, reason: 'Wrong check-out' }).success,
     ).toBe(true);
   });
 });

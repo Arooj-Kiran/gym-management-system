@@ -171,7 +171,9 @@ export async function checkOut(id: string): Promise<AttendanceDto> {
     await tx
       .update(attendanceRecords)
       // A check-in stamped by a device clock a moment ahead must still end after it starts.
-      .set({ checkOutAt: sql`greatest(now(), ${attendanceRecords.checkInAt} + interval '1 second')` })
+      .set({
+        checkOutAt: sql`greatest(now(), ${attendanceRecords.checkInAt} + interval '1 second')`,
+      })
       .where(eq(attendanceRecords.id, id));
   });
   return getAttendance(id);
@@ -204,12 +206,12 @@ export async function correctAttendance(
       throw validationFailed([{ path: 'checkInAt', message: 'Check-in cannot be in the future' }]);
     }
     if (next.checkOutAt && next.checkOutAt.getTime() > Date.now() + 60_000) {
-      throw validationFailed([{ path: 'checkOutAt', message: 'Check-out cannot be in the future' }]);
+      throw validationFailed([
+        { path: 'checkOutAt', message: 'Check-out cannot be in the future' },
+      ]);
     }
     if (next.checkOutAt && next.checkOutAt <= next.checkInAt) {
-      throw validationFailed([
-        { path: 'checkOutAt', message: 'Check-out must be after check-in' },
-      ]);
+      throw validationFailed([{ path: 'checkOutAt', message: 'Check-out must be after check-in' }]);
     }
 
     const changes: { field: CorrectionField; oldValue: string | null; newValue: string | null }[] =

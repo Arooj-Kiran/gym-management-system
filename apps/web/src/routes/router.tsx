@@ -1,15 +1,21 @@
 import { createBrowserRouter } from 'react-router';
 import { AppShell } from '../components/layout/app-shell';
+import { AccessLogPage } from '../features/access/access-log-page';
+import { CheckInPage } from '../features/access/check-in-page';
+import { KioskPage } from '../features/access/kiosk-page';
 import { AccountPage } from '../features/account/account-page';
+import { AttendancePage } from '../features/attendance/attendance-page';
 import { AuditLogPage } from '../features/audit/audit-log-page';
 import { ChangePasswordPage } from '../features/auth/change-password-page';
 import { LoginPage } from '../features/auth/login-page';
 import { DashboardPage } from '../features/dashboard/dashboard-page';
+import { DevicesPage } from '../features/devices/devices-page';
 import { NotFoundPage, RouteErrorPage } from '../features/errors/error-pages';
 import { MemberDetailPage } from '../features/members/member-detail-page';
 import { MembersListPage } from '../features/members/members-list-page';
 import { MembershipsPage } from '../features/memberships/memberships-page';
 import { PlansPage } from '../features/plans/plans-page';
+import { PortalAttendancePage } from '../features/portal/portal-attendance-page';
 import { PortalMembershipPage } from '../features/portal/portal-membership-page';
 import { PortalPlansPage } from '../features/portal/portal-plans-page';
 import { PortalProfilePage } from '../features/portal/portal-profile-page';
@@ -28,6 +34,16 @@ export const routes = [
         element: <RequireAuth />,
         children: [
           {
+            // The entrance screen runs full screen, outside the app shell.
+            element: <RequireStaff />,
+            children: [
+              {
+                element: <RequirePermission permission="access:monitor" />,
+                children: [{ path: '/kiosk/:deviceId', element: <KioskPage /> }],
+              },
+            ],
+          },
+          {
             element: <AppShell />,
             children: [
               { path: '/account', element: <AccountPage /> },
@@ -37,6 +53,7 @@ export const routes = [
                   { path: '/portal', element: <PortalProfilePage /> },
                   { path: '/portal/membership', element: <PortalMembershipPage /> },
                   { path: '/portal/plans', element: <PortalPlansPage /> },
+                  { path: '/portal/attendance', element: <PortalAttendancePage /> },
                 ],
               },
               {
@@ -57,6 +74,22 @@ export const routes = [
                   {
                     element: <RequirePermission permission="plans:read" />,
                     children: [{ path: '/plans', element: <PlansPage /> }],
+                  },
+                  {
+                    element: <RequirePermission permission="access:monitor" />,
+                    children: [{ path: '/check-in', element: <CheckInPage /> }],
+                  },
+                  {
+                    element: <RequirePermission permission="attendance:read" fullScope />,
+                    children: [{ path: '/attendance', element: <AttendancePage /> }],
+                  },
+                  {
+                    element: <RequirePermission permission="access:read-log" />,
+                    children: [{ path: '/access-log', element: <AccessLogPage /> }],
+                  },
+                  {
+                    element: <RequirePermission permission="devices:manage" />,
+                    children: [{ path: '/devices', element: <DevicesPage /> }],
                   },
                   {
                     element: <RequirePermission permission="staff:read" />,
