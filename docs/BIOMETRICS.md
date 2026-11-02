@@ -150,10 +150,56 @@ the vendor adapter must confirm it.
 
 **Retention period:** the gym setting `biometric_retention_days` (default 30) is the agreed time
 after which fingerprints of members who are archived, or have had no active membership, should
-be deleted. **The automatic daily job that flags these enrollments is not built yet**; until it
-is, an Admin or Manager should review such members and revoke their fingerprints by hand.
+be deleted. The reminders job (hourly, `docs/NOTIFICATIONS.md` §4) flags every member who still
+has a live enrollment and was archived, or has had no pending, active or suspended membership,
+for that many days. "Since" is the archive date, or the last day a membership covered (a
+cancelled membership counts until its cancellation date), and never earlier than the first
+enrollment. Every Admin and Manager gets one **Fingerprint data review due** notification per
+member, linking to the member's page. They confirm the deletion by revoking the enrollment
+(steps 1–3 above); the job never deletes anything itself. A member who comes back and lapses
+again is flagged again.
 
-## 8. Legal review
+## 8. When the system cannot decide (fail closed)
+
+If the scanner, the network, the server or the database is unavailable, every scan is **denied**.
+The system never lets someone in because it could not check. The entrance screen shows
+"Access Denied — Membership could not be verified. Please see reception." and the agent keeps the denial in its outbox, which it uploads when
+the server is back (always recorded as denied, `AUTHORIZATION_UNAVAILABLE`).
+
+During an outage, the front desk follows this procedure:
+
+1. Check the member's membership card or the last receipt by eye, and write the name, time and
+   reason in the paper log at the desk.
+2. When the system is back, enter each visit with **Manual check-in** (on the Attendance page
+   or the member's Attendance tab). It runs the
+   normal membership check, needs a reason and is written to the audit log; a member who was not
+   eligible is refused there and then, and the manager follows up. An Admin or Manager then sets the real
+   arrival time with an attendance correction (reason required, audit-logged).
+3. *Administration → Scanners* shows when each scanner was last seen, so a dead scanner is
+   noticed quickly.
+
+## 9. Go-live checklist for real hardware
+
+Real biometric verification may only be claimed once every item has been done **on site** with
+the chosen device:
+
+- [ ] Vendor adapter written, reviewed and approved (new dependency), with its own tests.
+- [ ] Terminal set to identify-only; the relay or door output is disabled and driven by the agent
+      only after `GRANTED`. Tested: a recognised finger with a cancelled membership does **not**
+      open the door.
+- [ ] Cancel a test membership, then scan: denied on the very next scan.
+- [ ] Unplug the network, then scan: denied, and the denial appears in the access log once the
+      network is back.
+- [ ] Stop the API, then scan: denied.
+- [ ] Revoke an enrollment: the finger is no longer recognised, and the template is gone from the
+      terminal (checked on the terminal itself).
+- [ ] The device never sends a raw image; checked in the vendor configuration.
+- [ ] `BIOMETRIC_SIMULATOR_ENABLED=false` and `NODE_ENV=production` on the server.
+- [ ] The legal review in §10 is done.
+
+Until then the status at the top of this document stays **SIMULATED**.
+
+## 10. Legal review
 
 Fingerprints are biometric data, which many jurisdictions treat as a special category (for
 example GDPR Article 9, or national data-protection laws). Before real scanners are used, the

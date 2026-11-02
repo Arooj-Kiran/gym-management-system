@@ -21,3 +21,11 @@ if (!window.matchMedia) {
       dispatchEvent: () => false,
     }) as MediaQueryList;
 }
+
+// Nor ResizeObserver; the charts' responsive container reads it. Charts render no bars in jsdom
+// (no layout), so the tests check the text alternative under each chart instead.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};

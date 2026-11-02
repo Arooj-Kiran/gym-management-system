@@ -199,6 +199,8 @@ describe('/me/membership (scenario 12, memberships part)', () => {
         accessDays: null,
         accessStartTime: null,
         accessEndTime: null,
+        // Inserted directly, so it was never billed.
+        invoice: null,
       },
       next: null,
       daysLeft: 5,
@@ -234,5 +236,71 @@ describe('/me/membership (scenario 12, memberships part)', () => {
   it('is closed to staff', async () => {
     const staff = await signIn(app, await createUser({ role: 'RECEPTIONIST' }));
     expect((await me(staff).get('/membership')).status).toBe(403);
+  });
+});
+
+describe('/me billing (scenario 12, payments part)', () => {
+  async function paidCharge(memberId: string, amountMinor: number) {
+    const staff = await signIn(app, admin);
+    const invoice = await staff.agent
+      .post('/api/v1/invoices')
+      .set('X-CSRF-Token', staff.csrf)
+      .send({ memberId, description: 'Towel service', amountDueMinor: amountMinor * 2 })
+      .expect(201);
+    const payment = await staff.agent
+      .post('/api/v1/payments')
+      .set('X-CSRF-Token', staff.csrf)
+      .send({ invoiceId: invoice.body.id, amountMinor, method: 'CASH', notes: 'Staff-only note' })
+      .expect(201);
+    return { invoice: invoice.body, payment: payment.body };
+  }
+
+  it("shows only the member's own invoices, payments and receipts", async () => {
+    const mine = await paidCharge(memberA.id, 20_000);
+    const theirs = await paidCharge(memberB.id, 35_000);
+
+    const invoices = await me(sessionA).get('/invoices');
+    expect(invoices.status).toBe(200);
+    expect(invoices.body.data.map((row: { id: string }) => row.id)).toEqual([mine.invoice.id]);
+    expect(invoices.body.summary).toEqual({ outstandingMinor: 20_000, overdueMinor: 0 });
+
+    const payments = await me(sessionA).get('/payments');
+    expect(payments.body.data.map((row: { id: string }) => row.id)).toEqual([mine.payment.id]);
+    expect(JSON.stringify(payments.body)).not.toContain('Staff-only note');
+
+    expect((await me(sessionA).get(`/payments/${mine.payment.id}/receipt`)).status).toBe(200);
+    // B's receipt looks exactly like one that does not exist.
+    const guessed = await me(sessionA).get(`/payments/${theirs.payment.id}/receipt`);
+    expect(guessed.status).toBe(404);
+    expect(guessed.body.error.code).toBe('NOT_FOUND');
+  });
+
+  it("returns 403 for the staff billing routes, including B's payment", async () => {
+    const theirs = await paidCharge(memberB.id, 35_000);
+    for (const path of [
+      `/payments/${theirs.payment.id}`,
+      `/payments/${theirs.payment.id}/receipt`,
+      `/invoices/${theirs.invoice.id}`,
+      `/members/${memberB.id}/payments`,
+      '/payments',
+      '/invoices',
+      '/refunds',
+    ]) {
+      expect((await sessionA.agent.get(`/api/v1${path}`)).status, path).toBe(403);
+    }
+  });
+
+  it('keeps Trainers out of payments entirely', async () => {
+    const theirs = await paidCharge(memberB.id, 35_000);
+    const trainer = await signIn(app, await createUser({ role: 'TRAINER' }));
+    for (const path of [
+      `/payments/${theirs.payment.id}`,
+      `/members/${memberB.id}/payments`,
+      `/members/${memberB.id}/invoices`,
+      '/payments',
+      '/me/payments',
+    ]) {
+      expect((await trainer.agent.get(`/api/v1${path}`)).status, path).toBe(403);
+    }
   });
 });

@@ -1,8 +1,16 @@
+import { randomUUID } from 'node:crypto';
 import { addDays } from '@gms/shared';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { closeDb, db } from '../../src/db/client';
-import { gymToday } from '../../src/lib/dates';
+import {
+  accessAttempts,
+  attendanceRecords,
+  classSessions,
+  fitnessClasses,
+  trainerAssignments,
+} from '../../src/db/schema';
+import { gymLocalToInstant, gymToday } from '../../src/lib/dates';
 import { signIn, testApp, type Session } from '../setup/auth';
 import { resetTables } from '../setup/db';
 import {
@@ -99,18 +107,158 @@ describe('dashboard member cards (scenario 16, Stage 2 cards)', () => {
     await createMember();
     for (const role of ['MANAGER', 'RECEPTIONIST'] as const) {
       const staff = await signIn(app, await createUser({ role }));
-      expect((await get(staff, '/summary')).body.members.total, role).toBe(1);
+      const body = (await get(staff, '/summary')).body;
+      expect(body.members.total, role).toBe(1);
+      expect(body.trainer, role).toBeNull();
     }
     const trainer = await signIn(app, await createUser({ role: 'TRAINER' }));
     expect((await get(trainer, '/summary')).body).toEqual({
+      // Stage 8: no whole-gym period totals for a Trainer either.
+      period: null,
       members: null,
       memberships: null,
       attendance: null,
+      billing: null,
+      // Stage 6: the trainer's own schedule and members instead of whole-gym figures.
+      trainer: { today: [], upcoming: [], assignedMembers: 0 },
     });
     expect((await get(trainer, '/activity')).body).toEqual([]);
 
     const member = await signIn(app, await createUser({ role: 'MEMBER' }));
     expect((await get(member, '/summary')).status).toBe(403);
+  });
+});
+
+describe('dashboard attendance cards (scenario 16, Stage 4 cards)', () => {
+  it('counts today’s valid check-ins and denials in gym time, matching raw SQL', async () => {
+    const today = gymToday();
+    const startOfToday = gymLocalToInstant(today, '00:00');
+    const lastOfYesterday = new Date(startOfToday.getTime() - 1);
+    const plan = await createPlan();
+    const sana = await createMember({ firstName: 'Sana', lastName: 'Iqbal' });
+    const membership = await createMembership(sana, plan, {
+      startDate: addDays(today, -10),
+      endDate: addDays(today, 20),
+    });
+    const checkIn = (when: Date, status: 'VALID' | 'VOIDED' = 'VALID') =>
+      db.transaction(async (tx) => {
+        const attendanceId = randomUUID();
+        const [attempt] = await tx
+          .insert(accessAttempts)
+          .values({
+            occurredAt: when,
+            source: 'SIMULATED',
+            memberId: sana.id,
+            membershipId: membership.id,
+            result: 'GRANTED',
+            reason: 'GRANTED',
+            attendanceId,
+          })
+          .returning();
+        await tx.insert(attendanceRecords).values({
+          id: attendanceId,
+          memberId: sana.id,
+          membershipId: membership.id,
+          checkInAt: when,
+          source: 'SIMULATED',
+          accessAttemptId: attempt!.id,
+          status,
+        });
+      });
+    const deny = (when: Date) =>
+      db.insert(accessAttempts).values({
+        occurredAt: when,
+        source: 'SIMULATED',
+        memberId: null,
+        result: 'DENIED',
+        reason: 'MEMBER_NOT_RECOGNIZED',
+      });
+    await checkIn(lastOfYesterday);
+    await checkIn(startOfToday);
+    await checkIn(new Date(startOfToday.getTime() + 1_000), 'VOIDED');
+    await checkIn(new Date(startOfToday.getTime() + 2_000));
+    await deny(lastOfYesterday);
+    await deny(startOfToday);
+
+    const res = await get(session, '/summary');
+    expect(res.status).toBe(200);
+    // Hand-computed: two valid check-ins from midnight on (not the voided one, not yesterday's
+    // last millisecond), and one denial from midnight on.
+    expect(res.body.attendance).toMatchObject({ checkInsToday: 2, deniedToday: 1 });
+    expect(res.body.attendance.recentCheckIns).toHaveLength(2);
+    expect(res.body.attendance.recentCheckIns[0].member).toMatchObject({ id: sana.id });
+
+    const raw = await db.execute<{ check_ins: number; denied: number }>(sql`
+      select
+        (select count(*)::int from attendance_records where status = 'VALID'
+          and (check_in_at at time zone 'Asia/Karachi')::date = ${today}::date) as check_ins,
+        (select count(*)::int from access_attempts where result = 'DENIED'
+          and (occurred_at at time zone 'Asia/Karachi')::date = ${today}::date) as denied
+    `);
+    expect(raw.rows[0]).toEqual({ check_ins: 2, denied: 1 });
+  });
+});
+
+describe('trainer dashboard (Stage 6)', () => {
+  it("shows the trainer's own week and assigned-member count, matching raw SQL", async () => {
+    const coach = await createUser({ role: 'TRAINER', firstName: 'Iqra', lastName: 'Coach' });
+    const otherCoach = await createUser({ role: 'TRAINER' });
+    const today = gymToday();
+    const [cls] = await db
+      .insert(fitnessClasses)
+      .values({ name: 'Dash Spin', defaultDurationMinutes: 45, defaultCapacity: 10 })
+      .returning();
+    const at = (date: string, time: string) => gymLocalToInstant(date, time);
+    await db.insert(classSessions).values([
+      // Today 23:00 and in 3 days: counted. In 9 days, or another trainer's: not counted.
+      {
+        classId: cls!.id,
+        trainerId: coach.id,
+        startsAt: at(today, '23:00'),
+        endsAt: at(today, '23:45'),
+        capacity: 10,
+      },
+      {
+        classId: cls!.id,
+        trainerId: coach.id,
+        startsAt: at(addDays(today, 3), '07:00'),
+        endsAt: at(addDays(today, 3), '07:45'),
+        capacity: 10,
+      },
+      {
+        classId: cls!.id,
+        trainerId: coach.id,
+        startsAt: at(addDays(today, 9), '07:00'),
+        endsAt: at(addDays(today, 9), '07:45'),
+        capacity: 10,
+      },
+      {
+        classId: cls!.id,
+        trainerId: otherCoach.id,
+        startsAt: at(addDays(today, 2), '07:00'),
+        endsAt: at(addDays(today, 2), '07:45'),
+        capacity: 10,
+      },
+    ]);
+    const [kept, ended] = [await createMember(), await createMember()];
+    const archived = await createMember({ archivedAt: new Date(), archivedBy: admin.id });
+    await db.insert(trainerAssignments).values([
+      { trainerId: coach.id, memberId: kept.id, startDate: today },
+      { trainerId: coach.id, memberId: ended.id, startDate: addDays(today, -9), endDate: today },
+      { trainerId: coach.id, memberId: archived.id, startDate: today },
+    ]);
+
+    const body = (await get(await signIn(app, coach), '/summary')).body;
+    expect(body.trainer.today.map((i: { title: string }) => i.title)).toEqual(['Dash Spin']);
+    expect(body.trainer.upcoming).toHaveLength(1);
+    expect(body.trainer.assignedMembers).toBe(1);
+
+    const raw = await db.execute<{ assigned: number }>(sql`
+      select count(*)::int as assigned from trainer_assignments ta
+      join members m on m.id = ta.member_id
+      where ta.trainer_id = ${coach.id} and ta.end_date is null and m.archived_at is null
+    `);
+    expect(raw.rows[0]!.assigned).toBe(1);
   });
 });
 
@@ -227,5 +375,67 @@ describe('dashboard membership cards (scenario 16, Stage 3 cards)', () => {
       },
     });
     expect(created.body.memberId).toBe(member.id);
+  });
+});
+
+describe('dashboard billing cards (scenario 16, Stage 5 cards)', () => {
+  it('sums open and overdue balances and the net revenue this month, matching raw SQL', async () => {
+    const today = gymToday();
+    const member = await createMember();
+    const post = (path: string, body: object) =>
+      session.agent.post(`/api/v1${path}`).set('X-CSRF-Token', session.csrf).send(body);
+    const charge = (amountDueMinor: number, dueDate: string) =>
+      post('/invoices', {
+        memberId: member.id,
+        description: 'Locker rental',
+        amountDueMinor,
+        dueDate,
+      });
+
+    const late = (await charge(60_000, addDays(today, -3)).expect(201)).body;
+    const partLate = (await charge(50_000, addDays(today, -3)).expect(201)).body;
+    const open = (await charge(50_000, today).expect(201)).body;
+    const paid = (await charge(30_000, today).expect(201)).body;
+    await post('/payments', { invoiceId: partLate.id, amountMinor: 40_000, method: 'CASH' }).expect(
+      201,
+    );
+    const payment = (
+      await post('/payments', { invoiceId: paid.id, amountMinor: 30_000, method: 'CASH' }).expect(
+        201,
+      )
+    ).body;
+    await post(`/payments/${payment.id}/refunds`, {
+      amountMinor: 5_000,
+      reason: 'Locker broken for a week',
+      method: 'CASH',
+    }).expect(201);
+    expect(open.status).toBe('PENDING');
+    expect(late.status).toBe('OVERDUE');
+
+    const res = await get(session, '/summary');
+    expect(res.body.billing).toEqual({
+      // late 60_000 + part-paid late 10_000 + open 50_000 + paid-then-part-refunded 5_000
+      outstanding: { count: 4, amountMinor: 125_000 },
+      // Only the unpaid late invoice: a part-paid one stays PARTIALLY_PAID (PLAN §3.4 order),
+      // which keeps this card equal to /invoices?status=OVERDUE.
+      overdue: { count: 1, amountMinor: 60_000 },
+      revenue: {
+        month: today.slice(0, 7),
+        collectedMinor: 70_000,
+        refundedMinor: 5_000,
+        netMinor: 65_000,
+        paymentCount: 2,
+      },
+    });
+    const raw = await db.execute<{ collected: string }>(
+      sql`select coalesce(sum(amount_minor), 0) as collected from payments where status = 'COMPLETED'`,
+    );
+    expect(Number(raw.rows[0]!.collected)).toBe(70_000);
+
+    const receptionist = await signIn(app, await createUser({ role: 'RECEPTIONIST' }));
+    const desk = (await get(receptionist, '/summary')).body.billing;
+    expect(desk.revenue).toBeNull();
+    expect(desk.outstanding).toEqual({ count: 4, amountMinor: 125_000 });
+    expect(desk.overdue).toEqual({ count: 1, amountMinor: 60_000 });
   });
 });

@@ -89,20 +89,57 @@ async function request<T>(method: string, path: string, options: RequestOptions 
   if (response.status === 204) return undefined as T;
 
   const payload: unknown = await response.json().catch(() => null);
-  if (!response.ok) {
-    const body = (payload as ApiErrorBody | null)?.error;
-    const { code, message, details, ...extra } = body ?? {};
-    const error = new ApiError(
-      response.status,
-      code ?? 'HTTP_ERROR',
-      message ?? `The server answered with an error (${response.status}).`,
-      details ?? [],
-      extra,
-    );
-    if (response.status === 401 && !options.silent401) onUnauthenticated?.();
-    throw error;
-  }
+  if (!response.ok) throw failure(response, payload, options.silent401);
   return payload as T;
+}
+
+function failure(response: Response, payload: unknown, silent401 = false) {
+  const body = (payload as ApiErrorBody | null)?.error;
+  const { code, message, details, ...extra } = body ?? {};
+  const error = new ApiError(
+    response.status,
+    code ?? 'HTTP_ERROR',
+    message ?? `The server answered with an error (${response.status}).`,
+    details ?? [],
+    extra,
+  );
+  if (response.status === 401 && !silent401) onUnauthenticated?.();
+  return error;
+}
+
+/**
+ * Fetches a file (a CSV export) and hands it to the browser as a download, so a refusal or
+ * rate limit shows as an error message instead of a saved error page. Answers the file name.
+ */
+async function download(path: string, query: Query, fallbackName: string): Promise<string> {
+  let response: Response;
+  try {
+    response = await fetch(buildUrl(path, query), {
+      headers: { Accept: 'text/csv, application/json' },
+      credentials: 'same-origin',
+    });
+  } catch {
+    throw new ApiError(
+      0,
+      'NETWORK_ERROR',
+      'Cannot reach the server. Check your connection and try again.',
+    );
+  }
+  if (!response.ok) {
+    throw failure(response, await response.json().catch(() => null));
+  }
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const filename = /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? fallbackName;
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  // Revoked on the next tick: the click has started the download by then.
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+  return filename;
 }
 
 export const api = {
@@ -110,7 +147,9 @@ export const api = {
     request<T>('GET', path, options),
   post: <T = void>(path: string, body?: unknown) => request<T>('POST', path, { body: body ?? {} }),
   patch: <T>(path: string, body: unknown) => request<T>('PATCH', path, { body }),
+  put: <T>(path: string, body: unknown) => request<T>('PUT', path, { body }),
   upload: <T>(path: string, form: FormData) => request<T>('POST', path, { form }),
+  download,
 };
 
 /** Human-friendly message for toasts and inline errors. */

@@ -1,11 +1,11 @@
 import { permissionScope, SCOPES } from '@gms/shared';
 import { forbidden } from '../../lib/errors';
+import { assertAssigned } from '../trainers/trainer-scope';
 
 /**
  * Object-level scope for `memberships:read` on staff routes (PLAN §5).
  * - Full-access roles see every membership.
- * - Trainers see assigned members' status and dates only. Assignments arrive in Stage 6, so
- *   until then the list is empty and any single membership is out of scope.
+ * - Trainers see assigned members' status and dates only (TrainerMembershipDto).
  * - Members read their own memberships through /me.
  */
 export type MembershipReadScope = { kind: 'all' } | { kind: 'assigned'; trainerUserId: string };
@@ -17,7 +17,7 @@ export function membershipReadScope(auth: Express.AuthContext): MembershipReadSc
   throw forbidden();
 }
 
-/** Stage 6 replaces this with a trainer_assignments lookup. */
-export function assertCanReadMembershipsOf(scope: MembershipReadScope, _memberId: string) {
-  if (scope.kind === 'assigned') throw forbidden('This member is not assigned to you.');
+/** 403 unless the caller may see this member (a trainer: only while assigned). */
+export async function assertCanReadMembershipsOf(scope: MembershipReadScope, memberId: string) {
+  if (scope.kind === 'assigned') await assertAssigned(scope.trainerUserId, memberId);
 }

@@ -293,13 +293,9 @@
         "user_sessions_user_id_users_id_fk": {
           "name": "user_sessions_user_id_users_id_fk",
           "tableFrom": "user_sessions",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -381,13 +377,9 @@
         "staff_profiles_user_id_users_id_fk": {
           "name": "staff_profiles_user_id_users_id_fk",
           "tableFrom": "staff_profiles",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -558,13 +550,9 @@
         "audit_logs_actor_user_id_users_id_fk": {
           "name": "audit_logs_actor_user_id_users_id_fk",
           "tableFrom": "audit_logs",
-          "columnsFrom": [
-            "actor_user_id"
-          ],
+          "columnsFrom": ["actor_user_id"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -977,52 +965,36 @@
         "members_user_id_users_id_fk": {
           "name": "members_user_id_users_id_fk",
           "tableFrom": "members",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "members_access_blocked_by_users_id_fk": {
           "name": "members_access_blocked_by_users_id_fk",
           "tableFrom": "members",
-          "columnsFrom": [
-            "access_blocked_by"
-          ],
+          "columnsFrom": ["access_blocked_by"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "members_archived_by_users_id_fk": {
           "name": "members_archived_by_users_id_fk",
           "tableFrom": "members",
-          "columnsFrom": [
-            "archived_by"
-          ],
+          "columnsFrom": ["archived_by"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "members_created_by_users_id_fk": {
           "name": "members_created_by_users_id_fk",
           "tableFrom": "members",
-          "columnsFrom": [
-            "created_by"
-          ],
+          "columnsFrom": ["created_by"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -1382,39 +1354,27 @@
         "membership_events_membership_id_memberships_id_fk": {
           "name": "membership_events_membership_id_memberships_id_fk",
           "tableFrom": "membership_events",
-          "columnsFrom": [
-            "membership_id"
-          ],
+          "columnsFrom": ["membership_id"],
           "tableTo": "memberships",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "membership_events_member_id_members_id_fk": {
           "name": "membership_events_member_id_members_id_fk",
           "tableFrom": "membership_events",
-          "columnsFrom": [
-            "member_id"
-          ],
+          "columnsFrom": ["member_id"],
           "tableTo": "members",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "membership_events_actor_user_id_users_id_fk": {
           "name": "membership_events_actor_user_id_users_id_fk",
           "tableFrom": "membership_events",
-          "columnsFrom": [
-            "actor_user_id"
-          ],
+          "columnsFrom": ["actor_user_id"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -1659,78 +1619,54 @@
         "memberships_member_id_members_id_fk": {
           "name": "memberships_member_id_members_id_fk",
           "tableFrom": "memberships",
-          "columnsFrom": [
-            "member_id"
-          ],
+          "columnsFrom": ["member_id"],
           "tableTo": "members",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "memberships_plan_id_membership_plans_id_fk": {
           "name": "memberships_plan_id_membership_plans_id_fk",
           "tableFrom": "memberships",
-          "columnsFrom": [
-            "plan_id"
-          ],
+          "columnsFrom": ["plan_id"],
           "tableTo": "membership_plans",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "memberships_activated_by_users_id_fk": {
           "name": "memberships_activated_by_users_id_fk",
           "tableFrom": "memberships",
-          "columnsFrom": [
-            "activated_by"
-          ],
+          "columnsFrom": ["activated_by"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "memberships_cancelled_by_users_id_fk": {
           "name": "memberships_cancelled_by_users_id_fk",
           "tableFrom": "memberships",
-          "columnsFrom": [
-            "cancelled_by"
-          ],
+          "columnsFrom": ["cancelled_by"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "memberships_created_by_users_id_fk": {
           "name": "memberships_created_by_users_id_fk",
           "tableFrom": "memberships",
-          "columnsFrom": [
-            "created_by"
-          ],
+          "columnsFrom": ["created_by"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "memberships_renewed_from_id_fk": {
           "name": "memberships_renewed_from_id_fk",
           "tableFrom": "memberships",
-          "columnsFrom": [
-            "renewed_from_id"
-          ],
+          "columnsFrom": ["renewed_from_id"],
           "tableTo": "memberships",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -1982,52 +1918,36 @@
         "access_attempts_device_id_access_devices_id_fk": {
           "name": "access_attempts_device_id_access_devices_id_fk",
           "tableFrom": "access_attempts",
-          "columnsFrom": [
-            "device_id"
-          ],
+          "columnsFrom": ["device_id"],
           "tableTo": "access_devices",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "access_attempts_member_id_members_id_fk": {
           "name": "access_attempts_member_id_members_id_fk",
           "tableFrom": "access_attempts",
-          "columnsFrom": [
-            "member_id"
-          ],
+          "columnsFrom": ["member_id"],
           "tableTo": "members",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "access_attempts_membership_id_memberships_id_fk": {
           "name": "access_attempts_membership_id_memberships_id_fk",
           "tableFrom": "access_attempts",
-          "columnsFrom": [
-            "membership_id"
-          ],
+          "columnsFrom": ["membership_id"],
           "tableTo": "memberships",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "access_attempts_verified_by_user_id_users_id_fk": {
           "name": "access_attempts_verified_by_user_id_users_id_fk",
           "tableFrom": "access_attempts",
-          "columnsFrom": [
-            "verified_by_user_id"
-          ],
+          "columnsFrom": ["verified_by_user_id"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -2193,13 +2113,9 @@
         "access_devices_created_by_users_id_fk": {
           "name": "access_devices_created_by_users_id_fk",
           "tableFrom": "access_devices",
-          "columnsFrom": [
-            "created_by"
-          ],
+          "columnsFrom": ["created_by"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -2302,26 +2218,18 @@
         "attendance_corrections_attendance_id_attendance_records_id_fk": {
           "name": "attendance_corrections_attendance_id_attendance_records_id_fk",
           "tableFrom": "attendance_corrections",
-          "columnsFrom": [
-            "attendance_id"
-          ],
+          "columnsFrom": ["attendance_id"],
           "tableTo": "attendance_records",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "attendance_corrections_corrected_by_users_id_fk": {
           "name": "attendance_corrections_corrected_by_users_id_fk",
           "tableFrom": "attendance_corrections",
-          "columnsFrom": [
-            "corrected_by"
-          ],
+          "columnsFrom": ["corrected_by"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -2471,52 +2379,36 @@
         "attendance_records_member_id_members_id_fk": {
           "name": "attendance_records_member_id_members_id_fk",
           "tableFrom": "attendance_records",
-          "columnsFrom": [
-            "member_id"
-          ],
+          "columnsFrom": ["member_id"],
           "tableTo": "members",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "attendance_records_membership_id_memberships_id_fk": {
           "name": "attendance_records_membership_id_memberships_id_fk",
           "tableFrom": "attendance_records",
-          "columnsFrom": [
-            "membership_id"
-          ],
+          "columnsFrom": ["membership_id"],
           "tableTo": "memberships",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "attendance_records_access_attempt_id_access_attempts_id_fk": {
           "name": "attendance_records_access_attempt_id_access_attempts_id_fk",
           "tableFrom": "attendance_records",
-          "columnsFrom": [
-            "access_attempt_id"
-          ],
+          "columnsFrom": ["access_attempt_id"],
           "tableTo": "access_attempts",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "attendance_records_created_by_users_id_fk": {
           "name": "attendance_records_created_by_users_id_fk",
           "tableFrom": "attendance_records",
-          "columnsFrom": [
-            "created_by"
-          ],
+          "columnsFrom": ["created_by"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -2628,39 +2520,27 @@
         "biometric_consents_member_id_members_id_fk": {
           "name": "biometric_consents_member_id_members_id_fk",
           "tableFrom": "biometric_consents",
-          "columnsFrom": [
-            "member_id"
-          ],
+          "columnsFrom": ["member_id"],
           "tableTo": "members",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "biometric_consents_recorded_by_users_id_fk": {
           "name": "biometric_consents_recorded_by_users_id_fk",
           "tableFrom": "biometric_consents",
-          "columnsFrom": [
-            "recorded_by"
-          ],
+          "columnsFrom": ["recorded_by"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "biometric_consents_withdrawn_recorded_by_users_id_fk": {
           "name": "biometric_consents_withdrawn_recorded_by_users_id_fk",
           "tableFrom": "biometric_consents",
-          "columnsFrom": [
-            "withdrawn_recorded_by"
-          ],
+          "columnsFrom": ["withdrawn_recorded_by"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -2853,65 +2733,45 @@
         "biometric_enrollments_member_id_members_id_fk": {
           "name": "biometric_enrollments_member_id_members_id_fk",
           "tableFrom": "biometric_enrollments",
-          "columnsFrom": [
-            "member_id"
-          ],
+          "columnsFrom": ["member_id"],
           "tableTo": "members",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "biometric_enrollments_device_id_access_devices_id_fk": {
           "name": "biometric_enrollments_device_id_access_devices_id_fk",
           "tableFrom": "biometric_enrollments",
-          "columnsFrom": [
-            "device_id"
-          ],
+          "columnsFrom": ["device_id"],
           "tableTo": "access_devices",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "biometric_enrollments_consent_id_biometric_consents_id_fk": {
           "name": "biometric_enrollments_consent_id_biometric_consents_id_fk",
           "tableFrom": "biometric_enrollments",
-          "columnsFrom": [
-            "consent_id"
-          ],
+          "columnsFrom": ["consent_id"],
           "tableTo": "biometric_consents",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "biometric_enrollments_enrolled_by_users_id_fk": {
           "name": "biometric_enrollments_enrolled_by_users_id_fk",
           "tableFrom": "biometric_enrollments",
-          "columnsFrom": [
-            "enrolled_by"
-          ],
+          "columnsFrom": ["enrolled_by"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "biometric_enrollments_revoked_by_users_id_fk": {
           "name": "biometric_enrollments_revoked_by_users_id_fk",
           "tableFrom": "biometric_enrollments",
-          "columnsFrom": [
-            "revoked_by"
-          ],
+          "columnsFrom": ["revoked_by"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -2940,40 +2800,22 @@
     "public.user_role": {
       "name": "user_role",
       "schema": "public",
-      "values": [
-        "ADMIN",
-        "MANAGER",
-        "RECEPTIONIST",
-        "TRAINER",
-        "MEMBER"
-      ]
+      "values": ["ADMIN", "MANAGER", "RECEPTIONIST", "TRAINER", "MEMBER"]
     },
     "public.member_account_status": {
       "name": "member_account_status",
       "schema": "public",
-      "values": [
-        "ACTIVE",
-        "INACTIVE"
-      ]
+      "values": ["ACTIVE", "INACTIVE"]
     },
     "public.duration_unit": {
       "name": "duration_unit",
       "schema": "public",
-      "values": [
-        "DAY",
-        "MONTH"
-      ]
+      "values": ["DAY", "MONTH"]
     },
     "public.plan_type": {
       "name": "plan_type",
       "schema": "public",
-      "values": [
-        "MONTHLY",
-        "QUARTERLY",
-        "SIX_MONTH",
-        "ANNUAL",
-        "CUSTOM"
-      ]
+      "values": ["MONTHLY", "QUARTERLY", "SIX_MONTH", "ANNUAL", "CUSTOM"]
     },
     "public.membership_event_type": {
       "name": "membership_event_type",
@@ -2992,13 +2834,7 @@
     "public.membership_status": {
       "name": "membership_status",
       "schema": "public",
-      "values": [
-        "PENDING",
-        "ACTIVE",
-        "SUSPENDED",
-        "CANCELLED",
-        "EXPIRED"
-      ]
+      "values": ["PENDING", "ACTIVE", "SUSPENDED", "CANCELLED", "EXPIRED"]
     },
     "public.access_reason": {
       "name": "access_reason",
@@ -3023,69 +2859,42 @@
     "public.access_result": {
       "name": "access_result",
       "schema": "public",
-      "values": [
-        "GRANTED",
-        "DENIED"
-      ]
+      "values": ["GRANTED", "DENIED"]
     },
     "public.access_source": {
       "name": "access_source",
       "schema": "public",
-      "values": [
-        "SIMULATED",
-        "REAL",
-        "MANUAL"
-      ]
+      "values": ["SIMULATED", "REAL", "MANUAL"]
     },
     "public.attendance_status": {
       "name": "attendance_status",
       "schema": "public",
-      "values": [
-        "VALID",
-        "VOIDED"
-      ]
+      "values": ["VALID", "VOIDED"]
     },
     "public.correction_field": {
       "name": "correction_field",
       "schema": "public",
-      "values": [
-        "CHECK_IN_AT",
-        "CHECK_OUT_AT",
-        "STATUS"
-      ]
+      "values": ["CHECK_IN_AT", "CHECK_OUT_AT", "STATUS"]
     },
     "public.device_health": {
       "name": "device_health",
       "schema": "public",
-      "values": [
-        "OK",
-        "ERROR"
-      ]
+      "values": ["OK", "ERROR"]
     },
     "public.device_status": {
       "name": "device_status",
       "schema": "public",
-      "values": [
-        "ACTIVE",
-        "DISABLED"
-      ]
+      "values": ["ACTIVE", "DISABLED"]
     },
     "public.device_type": {
       "name": "device_type",
       "schema": "public",
-      "values": [
-        "SIMULATED",
-        "REAL"
-      ]
+      "values": ["SIMULATED", "REAL"]
     },
     "public.enrollment_status": {
       "name": "enrollment_status",
       "schema": "public",
-      "values": [
-        "ACTIVE",
-        "REVOKED",
-        "DELETED"
-      ]
+      "values": ["ACTIVE", "REVOKED", "DELETED"]
     }
   },
   "schemas": {},

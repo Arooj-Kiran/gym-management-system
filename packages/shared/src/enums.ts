@@ -46,6 +46,50 @@ export const AUDIT_ACTIONS = [
   'BIOMETRIC_ENROLLED',
   'BIOMETRIC_ENROLLMENT_REVOKED',
   'BIOMETRIC_TEMPLATE_DELETED',
+  'INVOICE_CREATED',
+  'INVOICE_VOIDED',
+  'PAYMENT_RECORDED',
+  'REFUND_ISSUED',
+  'TRAINER_PROFILE_UPDATED',
+  'TRAINER_AVAILABILITY_UPDATED',
+  'TRAINER_TIME_OFF_ADDED',
+  'TRAINER_TIME_OFF_CANCELLED',
+  'TRAINER_ASSIGNED',
+  'TRAINER_ASSIGNMENT_ENDED',
+  'SHIFT_CREATED',
+  'SHIFT_UPDATED',
+  'SHIFT_CANCELLED',
+  'CLASS_CREATED',
+  'CLASS_UPDATED',
+  'CLASS_ARCHIVED',
+  'CLASS_SESSIONS_CREATED',
+  'CLASS_SESSION_UPDATED',
+  'CLASS_SESSION_CANCELLED',
+  'CLASS_BOOKED',
+  'CLASS_BOOKING_CANCELLED',
+  'CLASS_WAITLIST_PROMOTED',
+  'CLASS_ATTENDANCE_MARKED',
+  'APPOINTMENT_BOOKED',
+  'APPOINTMENT_UPDATED',
+  'APPOINTMENT_CANCELLED',
+  'APPOINTMENT_COMPLETED',
+  'APPOINTMENT_NO_SHOW',
+  'EXERCISE_CREATED',
+  'EXERCISE_UPDATED',
+  'EXERCISE_IMAGE_UPDATED',
+  'EXERCISE_ARCHIVED',
+  'WORKOUT_PLAN_CREATED',
+  'WORKOUT_PLAN_UPDATED',
+  'WORKOUT_PLAN_ITEMS_UPDATED',
+  'WORKOUT_PLAN_DUPLICATED',
+  'WORKOUT_PLAN_ARCHIVED',
+  'WORKOUT_ASSIGNED',
+  'WORKOUT_ASSIGNMENT_UPDATED',
+  'PROGRESS_RECORDED',
+  'EQUIPMENT_CREATED',
+  'EQUIPMENT_UPDATED',
+  'EQUIPMENT_STATUS_CHANGED',
+  'MAINTENANCE_RECORDED',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -96,6 +140,50 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   BIOMETRIC_ENROLLED: 'Fingerprint enrolled',
   BIOMETRIC_ENROLLMENT_REVOKED: 'Fingerprint enrollment revoked',
   BIOMETRIC_TEMPLATE_DELETED: 'Fingerprint deleted from device',
+  INVOICE_CREATED: 'Invoice created',
+  INVOICE_VOIDED: 'Invoice voided',
+  PAYMENT_RECORDED: 'Payment recorded',
+  REFUND_ISSUED: 'Refund issued',
+  TRAINER_PROFILE_UPDATED: 'Trainer profile updated',
+  TRAINER_AVAILABILITY_UPDATED: 'Trainer availability updated',
+  TRAINER_TIME_OFF_ADDED: 'Trainer time off added',
+  TRAINER_TIME_OFF_CANCELLED: 'Trainer time off cancelled',
+  TRAINER_ASSIGNED: 'Member assigned to trainer',
+  TRAINER_ASSIGNMENT_ENDED: 'Trainer assignment ended',
+  SHIFT_CREATED: 'Shift scheduled',
+  SHIFT_UPDATED: 'Shift updated',
+  SHIFT_CANCELLED: 'Shift cancelled',
+  CLASS_CREATED: 'Class created',
+  CLASS_UPDATED: 'Class updated',
+  CLASS_ARCHIVED: 'Class archived',
+  CLASS_SESSIONS_CREATED: 'Class sessions scheduled',
+  CLASS_SESSION_UPDATED: 'Class session updated',
+  CLASS_SESSION_CANCELLED: 'Class session cancelled',
+  CLASS_BOOKED: 'Class booked',
+  CLASS_BOOKING_CANCELLED: 'Class booking cancelled',
+  CLASS_WAITLIST_PROMOTED: 'Promoted from waitlist',
+  CLASS_ATTENDANCE_MARKED: 'Class attendance marked',
+  APPOINTMENT_BOOKED: 'Appointment booked',
+  APPOINTMENT_UPDATED: 'Appointment updated',
+  APPOINTMENT_CANCELLED: 'Appointment cancelled',
+  APPOINTMENT_COMPLETED: 'Appointment completed',
+  APPOINTMENT_NO_SHOW: 'Appointment marked no-show',
+  EXERCISE_CREATED: 'Exercise added',
+  EXERCISE_UPDATED: 'Exercise updated',
+  EXERCISE_IMAGE_UPDATED: 'Exercise image updated',
+  EXERCISE_ARCHIVED: 'Exercise archived',
+  WORKOUT_PLAN_CREATED: 'Workout plan created',
+  WORKOUT_PLAN_UPDATED: 'Workout plan updated',
+  WORKOUT_PLAN_ITEMS_UPDATED: 'Workout plan exercises changed',
+  WORKOUT_PLAN_DUPLICATED: 'Workout plan duplicated',
+  WORKOUT_PLAN_ARCHIVED: 'Workout plan archived',
+  WORKOUT_ASSIGNED: 'Workout plan assigned',
+  WORKOUT_ASSIGNMENT_UPDATED: 'Workout assignment updated',
+  PROGRESS_RECORDED: 'Progress recorded',
+  EQUIPMENT_CREATED: 'Equipment added',
+  EQUIPMENT_UPDATED: 'Equipment updated',
+  EQUIPMENT_STATUS_CHANGED: 'Equipment status changed',
+  MAINTENANCE_RECORDED: 'Maintenance recorded',
 };
 
 export const AUDIT_ENTITY_TYPES = [
@@ -109,6 +197,23 @@ export const AUDIT_ENTITY_TYPES = [
   'ACCESS_DEVICE',
   'BIOMETRIC_CONSENT',
   'BIOMETRIC_ENROLLMENT',
+  'INVOICE',
+  'PAYMENT',
+  'REFUND',
+  'TRAINER',
+  'TRAINER_ASSIGNMENT',
+  'TRAINER_TIME_OFF',
+  'STAFF_SHIFT',
+  'FITNESS_CLASS',
+  'CLASS_SESSION',
+  'CLASS_BOOKING',
+  'APPOINTMENT',
+  'EXERCISE',
+  'WORKOUT_PLAN',
+  'WORKOUT_ASSIGNMENT',
+  'PROGRESS_ENTRY',
+  'EQUIPMENT',
+  'MAINTENANCE_RECORD',
 ] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 
@@ -142,6 +247,36 @@ export const ERROR_CODES = {
   CONSENT_ALREADY_GIVEN: 'CONSENT_ALREADY_GIVEN',
   ALREADY_ENROLLED: 'ALREADY_ENROLLED',
   TEMPLATE_REF_IN_USE: 'TEMPLATE_REF_IN_USE',
+  PAYMENT_REQUIRED: 'PAYMENT_REQUIRED',
+  OVERPAYMENT: 'OVERPAYMENT',
+  PARTIAL_PAYMENT_NOT_ALLOWED: 'PARTIAL_PAYMENT_NOT_ALLOWED',
+  REFUND_EXCEEDS_PAYMENT: 'REFUND_EXCEEDS_PAYMENT',
+  PAYMENT_NOT_REFUNDABLE: 'PAYMENT_NOT_REFUNDABLE',
+  INVOICE_VOID: 'INVOICE_VOID',
+  INVOICE_HAS_PAYMENTS: 'INVOICE_HAS_PAYMENTS',
+  ONLINE_PAYMENT_NOT_CONFIGURED: 'ONLINE_PAYMENT_NOT_CONFIGURED',
+  NOT_A_TRAINER: 'NOT_A_TRAINER',
+  TRAINER_NOT_BOOKABLE: 'TRAINER_NOT_BOOKABLE',
+  ASSIGNMENT_EXISTS: 'ASSIGNMENT_EXISTS',
+  SHIFT_OVERLAP: 'SHIFT_OVERLAP',
+  DUPLICATE_CLASS_NAME: 'DUPLICATE_CLASS_NAME',
+  CLASS_ARCHIVED: 'CLASS_ARCHIVED',
+  CAPACITY_BELOW_BOOKINGS: 'CAPACITY_BELOW_BOOKINGS',
+  SCHEDULE_CONFLICT: 'SCHEDULE_CONFLICT',
+  ROOM_CONFLICT: 'ROOM_CONFLICT',
+  MEMBER_SCHEDULE_CONFLICT: 'MEMBER_SCHEDULE_CONFLICT',
+  OUTSIDE_AVAILABILITY: 'OUTSIDE_AVAILABILITY',
+  DUPLICATE_BOOKING: 'DUPLICATE_BOOKING',
+  BOOKING_CLOSED: 'BOOKING_CLOSED',
+  CLASS_NOT_BOOKABLE: 'CLASS_NOT_BOOKABLE',
+  MEMBERSHIP_NOT_ELIGIBLE: 'MEMBERSHIP_NOT_ELIGIBLE',
+  DUPLICATE_EXERCISE_NAME: 'DUPLICATE_EXERCISE_NAME',
+  EXERCISE_ARCHIVED: 'EXERCISE_ARCHIVED',
+  WORKOUT_PLAN_ARCHIVED: 'WORKOUT_PLAN_ARCHIVED',
+  WORKOUT_PLAN_EMPTY: 'WORKOUT_PLAN_EMPTY',
+  ASSIGNMENT_CLOSED: 'ASSIGNMENT_CLOSED',
+  DUPLICATE_SERIAL_NUMBER: 'DUPLICATE_SERIAL_NUMBER',
+  EQUIPMENT_RETIRED: 'EQUIPMENT_RETIRED',
   LAST_ADMIN: 'LAST_ADMIN',
   SELF_ACTION_NOT_ALLOWED: 'SELF_ACTION_NOT_ALLOWED',
   RATE_LIMITED: 'RATE_LIMITED',
@@ -342,4 +477,267 @@ export const ENROLLMENT_STATUS_LABELS: Record<EnrollmentStatus, string> = {
   ACTIVE: 'Active',
   REVOKED: 'Deletion pending',
   DELETED: 'Deleted',
+};
+
+// --- Billing (Stage 5) -------------------------------------------------------------------------
+
+/** PLAN §3.4. Always recalculated by the server; never set by a client. */
+export const INVOICE_STATUSES = [
+  'PENDING',
+  'PARTIALLY_PAID',
+  'PAID',
+  'OVERDUE',
+  'REFUNDED',
+  'VOID',
+] as const;
+export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
+
+export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
+  PENDING: 'Unpaid',
+  PARTIALLY_PAID: 'Partially paid',
+  PAID: 'Paid',
+  OVERDUE: 'Overdue',
+  REFUNDED: 'Refunded',
+  VOID: 'Void',
+};
+
+export const PAYMENT_METHODS = ['CASH', 'BANK_TRANSFER', 'CARD', 'OTHER', 'ONLINE'] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+/** Methods staff record at the counter. ONLINE needs a payment provider (D8, not configured). */
+export const COUNTER_PAYMENT_METHODS = ['CASH', 'BANK_TRANSFER', 'CARD', 'OTHER'] as const;
+export type CounterPaymentMethod = (typeof COUNTER_PAYMENT_METHODS)[number];
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  CASH: 'Cash',
+  BANK_TRANSFER: 'Bank transfer',
+  CARD: 'Card',
+  OTHER: 'Other',
+  ONLINE: 'Online',
+};
+
+export const PAYMENT_STATUSES = ['COMPLETED', 'PENDING_CONFIRMATION', 'FAILED'] as const;
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  COMPLETED: 'Completed',
+  PENDING_CONFIRMATION: 'Awaiting confirmation',
+  FAILED: 'Failed',
+};
+
+// --- Trainers, schedules, classes and appointments (Stage 6) ---------------------------------
+
+export const TIME_OFF_STATUSES = ['ACTIVE', 'CANCELLED'] as const;
+export type TimeOffStatus = (typeof TIME_OFF_STATUSES)[number];
+
+export const SHIFT_STATUSES = ['SCHEDULED', 'CANCELLED'] as const;
+export type ShiftStatus = (typeof SHIFT_STATUSES)[number];
+
+export const SHIFT_STATUS_LABELS: Record<ShiftStatus, string> = {
+  SCHEDULED: 'Scheduled',
+  CANCELLED: 'Cancelled',
+};
+
+/** COMPLETED is never stored by an action: a SCHEDULED session that has ended reads as completed. */
+export const CLASS_SESSION_STATUSES = ['SCHEDULED', 'CANCELLED', 'COMPLETED'] as const;
+export type ClassSessionStatus = (typeof CLASS_SESSION_STATUSES)[number];
+
+export const CLASS_SESSION_STATUS_LABELS: Record<ClassSessionStatus, string> = {
+  SCHEDULED: 'Scheduled',
+  CANCELLED: 'Cancelled',
+  COMPLETED: 'Completed',
+};
+
+export const BOOKING_STATUSES = [
+  'BOOKED',
+  'WAITLISTED',
+  'CANCELLED',
+  'ATTENDED',
+  'NO_SHOW',
+] as const;
+export type BookingStatus = (typeof BOOKING_STATUSES)[number];
+
+/** Bookings that hold a place (or a waitlist spot) and block a second booking. */
+export const ACTIVE_BOOKING_STATUSES = ['BOOKED', 'WAITLISTED'] as const;
+/** Bookings that use one of the session's places. */
+export const SEATED_BOOKING_STATUSES = ['BOOKED', 'ATTENDED', 'NO_SHOW'] as const;
+
+export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
+  BOOKED: 'Booked',
+  WAITLISTED: 'Waitlisted',
+  CANCELLED: 'Cancelled',
+  ATTENDED: 'Attended',
+  NO_SHOW: 'No-show',
+};
+
+export const CLASS_ATTENDANCE_STATUSES = ['ATTENDED', 'NO_SHOW'] as const;
+export type ClassAttendanceStatus = (typeof CLASS_ATTENDANCE_STATUSES)[number];
+
+export const APPOINTMENT_STATUSES = ['BOOKED', 'CANCELLED', 'COMPLETED', 'NO_SHOW'] as const;
+export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
+
+export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
+  BOOKED: 'Booked',
+  CANCELLED: 'Cancelled',
+  COMPLETED: 'Completed',
+  NO_SHOW: 'No-show',
+};
+
+/** One entry on a trainer's (or member's) calendar. */
+export const SCHEDULE_ITEM_KINDS = ['CLASS', 'APPOINTMENT', 'TIME_OFF', 'SHIFT'] as const;
+export type ScheduleItemKind = (typeof SCHEDULE_ITEM_KINDS)[number];
+
+// --- Workouts, equipment and notifications (Stage 7) -------------------------------------------
+
+export const MUSCLE_GROUPS = [
+  'CHEST',
+  'BACK',
+  'SHOULDERS',
+  'ARMS',
+  'LEGS',
+  'GLUTES',
+  'CORE',
+  'FULL_BODY',
+  'CARDIO',
+] as const;
+export type MuscleGroup = (typeof MUSCLE_GROUPS)[number];
+
+export const MUSCLE_GROUP_LABELS: Record<MuscleGroup, string> = {
+  CHEST: 'Chest',
+  BACK: 'Back',
+  SHOULDERS: 'Shoulders',
+  ARMS: 'Arms',
+  LEGS: 'Legs',
+  GLUTES: 'Glutes',
+  CORE: 'Core',
+  FULL_BODY: 'Full body',
+  CARDIO: 'Cardio',
+};
+
+export const DIFFICULTY_LEVELS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'] as const;
+export type DifficultyLevel = (typeof DIFFICULTY_LEVELS)[number];
+
+export const DIFFICULTY_LEVEL_LABELS: Record<DifficultyLevel, string> = {
+  BEGINNER: 'Beginner',
+  INTERMEDIATE: 'Intermediate',
+  ADVANCED: 'Advanced',
+};
+
+export const WORKOUT_PLAN_STATUSES = ['ACTIVE', 'ARCHIVED'] as const;
+export type WorkoutPlanStatus = (typeof WORKOUT_PLAN_STATUSES)[number];
+
+export const WORKOUT_ASSIGNMENT_STATUSES = ['ACTIVE', 'COMPLETED', 'CANCELLED'] as const;
+export type WorkoutAssignmentStatus = (typeof WORKOUT_ASSIGNMENT_STATUSES)[number];
+
+export const WORKOUT_ASSIGNMENT_STATUS_LABELS: Record<WorkoutAssignmentStatus, string> = {
+  ACTIVE: 'Active',
+  COMPLETED: 'Completed',
+  CANCELLED: 'Cancelled',
+};
+
+/** Body measurements a progress entry may hold, in centimetres. */
+export const BODY_MEASUREMENTS = ['chest', 'waist', 'hips', 'arm', 'thigh'] as const;
+export type BodyMeasurement = (typeof BODY_MEASUREMENTS)[number];
+
+export const BODY_MEASUREMENT_LABELS: Record<BodyMeasurement, string> = {
+  chest: 'Chest',
+  waist: 'Waist',
+  hips: 'Hips',
+  arm: 'Arm',
+  thigh: 'Thigh',
+};
+
+export const EQUIPMENT_CATEGORIES = [
+  'CARDIO',
+  'STRENGTH_MACHINE',
+  'FREE_WEIGHTS',
+  'FUNCTIONAL',
+  'ACCESSORY',
+  'OTHER',
+] as const;
+export type EquipmentCategory = (typeof EQUIPMENT_CATEGORIES)[number];
+
+export const EQUIPMENT_CATEGORY_LABELS: Record<EquipmentCategory, string> = {
+  CARDIO: 'Cardio',
+  STRENGTH_MACHINE: 'Strength machine',
+  FREE_WEIGHTS: 'Free weights',
+  FUNCTIONAL: 'Functional',
+  ACCESSORY: 'Accessory',
+  OTHER: 'Other',
+};
+
+export const EQUIPMENT_CONDITIONS = ['EXCELLENT', 'GOOD', 'FAIR', 'POOR'] as const;
+export type EquipmentCondition = (typeof EQUIPMENT_CONDITIONS)[number];
+
+export const EQUIPMENT_CONDITION_LABELS: Record<EquipmentCondition, string> = {
+  EXCELLENT: 'Excellent',
+  GOOD: 'Good',
+  FAIR: 'Fair',
+  POOR: 'Poor',
+};
+
+/** RETIRED is final: retired equipment keeps its history but can no longer change. */
+export const EQUIPMENT_STATUSES = ['IN_SERVICE', 'OUT_OF_SERVICE', 'RETIRED'] as const;
+export type EquipmentStatus = (typeof EQUIPMENT_STATUSES)[number];
+
+export const EQUIPMENT_STATUS_LABELS: Record<EquipmentStatus, string> = {
+  IN_SERVICE: 'In service',
+  OUT_OF_SERVICE: 'Out of service',
+  RETIRED: 'Retired',
+};
+
+export const MAINTENANCE_TYPES = ['PREVENTIVE', 'REPAIR', 'INSPECTION'] as const;
+export type MaintenanceType = (typeof MAINTENANCE_TYPES)[number];
+
+export const MAINTENANCE_TYPE_LABELS: Record<MaintenanceType, string> = {
+  PREVENTIVE: 'Preventive service',
+  REPAIR: 'Repair',
+  INSPECTION: 'Inspection',
+};
+
+export const NOTIFICATION_TYPES = [
+  'MEMBERSHIP_EXPIRING',
+  'MEMBERSHIP_EXPIRED',
+  'MEMBERSHIP_CANCELLED',
+  'MEMBERSHIP_SUSPENDED',
+  'PAYMENT_DUE',
+  'PAYMENT_OVERDUE',
+  'RENEWAL_SUCCESS',
+  'CLASS_REMINDER',
+  'APPOINTMENT_REMINDER',
+  'EQUIPMENT_MAINTENANCE_DUE',
+  'BIOMETRIC_RETENTION_DUE',
+] as const;
+export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
+
+export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
+  MEMBERSHIP_EXPIRING: 'Membership expiring soon',
+  MEMBERSHIP_EXPIRED: 'Membership expired',
+  MEMBERSHIP_CANCELLED: 'Membership cancelled',
+  MEMBERSHIP_SUSPENDED: 'Membership suspended',
+  PAYMENT_DUE: 'Payment due soon',
+  PAYMENT_OVERDUE: 'Payment overdue',
+  RENEWAL_SUCCESS: 'Membership renewed',
+  CLASS_REMINDER: 'Upcoming class',
+  APPOINTMENT_REMINDER: 'Upcoming appointment',
+  EQUIPMENT_MAINTENANCE_DUE: 'Equipment maintenance due',
+  BIOMETRIC_RETENTION_DUE: 'Fingerprint data review due',
+};
+
+export const NOTIFICATION_CHANNELS = ['EMAIL', 'SMS', 'WHATSAPP'] as const;
+export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
+
+export const NOTIFICATION_CHANNEL_LABELS: Record<NotificationChannel, string> = {
+  EMAIL: 'Email',
+  SMS: 'SMS',
+  WHATSAPP: 'WhatsApp',
+};
+
+export const DELIVERY_STATUSES = ['NOT_CONFIGURED', 'SENT', 'FAILED'] as const;
+export type DeliveryStatus = (typeof DELIVERY_STATUSES)[number];
+
+export const DELIVERY_STATUS_LABELS: Record<DeliveryStatus, string> = {
+  NOT_CONFIGURED: 'Not configured',
+  SENT: 'Sent',
+  FAILED: 'Failed',
 };

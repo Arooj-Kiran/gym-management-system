@@ -86,6 +86,17 @@ export const optionalIsoDateSchema = z
   .nullish()
   .transform((value) => value || null);
 
+/** A moment in time with an explicit offset (the server stores UTC). */
+export const isoDateTimeSchema = z.iso.datetime({
+  offset: true,
+  error: 'Enter a valid date and time',
+});
+
+/** 24-hour wall-clock time in gym time, e.g. 06:30. */
+export const timeOfDaySchema = z
+  .string({ error: 'Enter a time' })
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use 24-hour time, e.g. 06:00');
+
 export const reasonSchema = z.string().trim().max(500, 'Must be 500 characters or fewer');
 
 export const requiredReasonSchema = reasonSchema.min(

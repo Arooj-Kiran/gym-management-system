@@ -22,6 +22,13 @@ const timezone = z.string().refine((value) => {
   }
 }, 'must be a valid IANA timezone');
 
+/** An optional setting where an empty value (as in .env.example) means "not set". */
+const optionalSetting = z
+  .string()
+  .trim()
+  .optional()
+  .transform((value) => (value ? value : undefined));
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
@@ -48,6 +55,19 @@ const envSchema = z.object({
   ACCESS_DB_TIMEOUT_MS: z.coerce.number().int().min(100).max(30_000).default(2000),
   ACCESS_SCAN_RATE_LIMIT_PER_MINUTE: positiveInt(60),
   BIOMETRIC_SIMULATOR_ENABLED: booleanString.default(false),
+  // Notification channels (Stage 7). Each channel is active only when all its settings are set.
+  SMTP_HOST: optionalSetting,
+  SMTP_PORT: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.coerce.number().int().min(1).max(65535).default(587),
+  ),
+  SMTP_USER: optionalSetting,
+  SMTP_PASSWORD: optionalSetting,
+  SMTP_FROM: optionalSetting,
+  TWILIO_ACCOUNT_SID: optionalSetting,
+  TWILIO_AUTH_TOKEN: optionalSetting,
+  TWILIO_SMS_FROM: optionalSetting,
+  TWILIO_WHATSAPP_FROM: optionalSetting,
 });
 
 export class ConfigError extends Error {}
@@ -121,6 +141,19 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env) {
     accessDbTimeoutMs: env.ACCESS_DB_TIMEOUT_MS,
     accessScanRateLimitPerMinute: env.ACCESS_SCAN_RATE_LIMIT_PER_MINUTE,
     biometricSimulatorEnabled: env.BIOMETRIC_SIMULATOR_ENABLED,
+    smtp: {
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
+      user: env.SMTP_USER,
+      password: env.SMTP_PASSWORD,
+      from: env.SMTP_FROM,
+    },
+    twilio: {
+      accountSid: env.TWILIO_ACCOUNT_SID,
+      authToken: env.TWILIO_AUTH_TOKEN,
+      smsFrom: env.TWILIO_SMS_FROM,
+      whatsappFrom: env.TWILIO_WHATSAPP_FROM,
+    },
   };
 }
 

@@ -2,14 +2,18 @@ import type { MeResponse } from '@gms/shared';
 import type { Express } from 'express';
 import request from 'supertest';
 import { createApp } from '../../src/app';
+import type { RateLimitOptions } from '../../src/middleware/rate-limits';
 import type { AccessSettings } from '../../src/modules/access/access-settings';
 import type { TestUser } from './factories';
 
 /**
- * App instance for tests: login and scan throttling raised so suites can sign in and scan many
- * times, and the simulator switched on regardless of the local .env.
+ * App instance for tests: login, scan and report throttling raised so suites can sign in, scan and
+ * run reports many times, and the simulator switched on regardless of the local .env.
  */
-export function testApp(rateLimits = { loginMax: 1_000 }, access: Partial<AccessSettings> = {}) {
+export function testApp(
+  rateLimits: Partial<RateLimitOptions> = { loginMax: 1_000, reportsPerMinute: 10_000 },
+  access: Partial<AccessSettings> = {},
+) {
   return createApp({
     rateLimits,
     access: { simulatorEnabled: true, scanRateLimitPerMinute: 10_000, ...access },

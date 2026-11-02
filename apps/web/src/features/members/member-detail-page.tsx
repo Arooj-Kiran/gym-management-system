@@ -19,9 +19,11 @@ import { TabPanel, Tabs } from '../../components/ui/tabs';
 import { fullName, useCan } from '../../lib/auth';
 import { formatDate, formatPhone } from '../../lib/format';
 import { MemberAttendanceTab } from '../attendance/member-attendance-tab';
+import { MemberBillingTab } from '../billing/member-billing-tab';
 import { FingerprintCard } from '../biometrics/fingerprint-card';
 import { MemberMembershipTab } from '../memberships/member-membership-tab';
 import { MembershipStatusBadge } from '../memberships/membership-status-badge';
+import { MemberWorkoutsTab } from '../workouts/member-workouts-tab';
 import { DuplicatePhoneDialog } from './duplicate-phone-dialog';
 import { handleMemberSaveError, type PhoneWarning } from './member-errors';
 import { MemberAvatar } from './member-avatar';
@@ -165,6 +167,8 @@ const TABS = [
   { value: 'profile', label: 'Profile', permission: null },
   { value: 'membership', label: 'Membership', permission: 'memberships:read' },
   { value: 'attendance', label: 'Attendance', permission: 'attendance:read' },
+  { value: 'payments', label: 'Payments', permission: 'payments:read' },
+  { value: 'workouts', label: 'Workouts', permission: 'workouts:read' },
 ] as const;
 type Tab = (typeof TABS)[number]['value'];
 
@@ -309,6 +313,10 @@ export function MemberDetailPage() {
               <MemberMembershipTab member={record} />
             ) : tab === 'attendance' ? (
               <MemberAttendanceTab member={record} />
+            ) : tab === 'payments' ? (
+              <MemberBillingTab member={record} />
+            ) : tab === 'workouts' ? (
+              <MemberWorkoutsTab member={record} />
             ) : (
               details
             )}

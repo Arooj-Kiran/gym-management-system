@@ -23,6 +23,7 @@ import { AppError, conflict, notFound, validationFailed } from '../../lib/errors
 import { likePattern, pageOffset, paginated } from '../../lib/pagination';
 import type { RequestContext } from '../../lib/request-context';
 import { memberPhotoUrl } from '../members/members.service';
+import { assignedMemberSql } from '../trainers/trainer-scope';
 import type { AttendanceReadScope } from './attendance.policy';
 
 type AttendanceListQuery = z.output<typeof attendanceListQuerySchema>;
@@ -83,10 +84,10 @@ export async function listAttendance(
   scope: AttendanceReadScope,
   fixed: { memberId?: string } = {},
 ) {
-  // Trainers are assigned to nobody until Stage 6.
-  if (scope.kind === 'assigned') return paginated([], query.page, query.pageSize, 0);
-
   const filters: (SQL | undefined)[] = [];
+  if (scope.kind === 'assigned') {
+    filters.push(assignedMemberSql(attendanceRecords.memberId, scope.trainerUserId));
+  }
   const memberId = fixed.memberId ?? query.memberId;
   if (memberId) filters.push(eq(attendanceRecords.memberId, memberId));
   if (query.date) {

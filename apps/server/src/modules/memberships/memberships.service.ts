@@ -15,6 +15,8 @@ import {
   type MembershipEventDto,
   type MembershipEventType,
   type MembershipStatus,
+  type Paginated,
+  type TrainerMembershipDto,
   type activateMembershipSchema,
   type assignMembershipSchema,
   type membershipListQuerySchema,
@@ -40,14 +42,33 @@ import {
 import { alias } from 'drizzle-orm/pg-core';
 import type { z } from 'zod';
 import { db, type DbExecutor } from '../../db/client';
-import { members, membershipEvents, membershipPlans, memberships, users } from '../../db/schema';
+import {
+  invoices,
+  members,
+  membershipEvents,
+  membershipPlans,
+  memberships,
+  users,
+} from '../../db/schema';
 import { recordAudit } from '../../lib/audit';
 import { gymToday } from '../../lib/dates';
 import { isExclusionViolation } from '../../lib/db-errors';
 import { conflict, notFound, validationFailed } from '../../lib/errors';
 import { likePattern, pageOffset, paginated } from '../../lib/pagination';
 import type { RequestContext } from '../../lib/request-context';
+import {
+  assertMembershipPaid,
+  createMembershipInvoice,
+  joinMembershipInvoice,
+  membershipInvoiceColumns,
+  toInvoiceBrief,
+  voidCancelledMembershipInvoice,
+  type MembershipInvoiceColumns,
+} from '../billing/billing.service';
 import { memberPhotoUrl } from '../members/members.service';
+import { notifyMembershipEvent } from '../notifications/membership-events';
+import { loadSettingsRow } from '../settings/settings.service';
+import { assignedMemberSql } from '../trainers/trainer-scope';
 import { effectiveStatusSql, expiringSoonSql } from './current-membership';
 import type { MembershipReadScope } from './memberships.policy';
 
@@ -68,12 +89,13 @@ const memberRefColumns = {
   memberPhotoKey: members.profilePhotoKey,
 };
 
-type MembershipWithMember = MembershipRow & {
-  memberCode: string;
-  memberFirstName: string;
-  memberLastName: string;
-  memberPhotoKey: string | null;
-};
+type MembershipWithMember = MembershipRow &
+  MembershipInvoiceColumns & {
+    memberCode: string;
+    memberFirstName: string;
+    memberLastName: string;
+    memberPhotoKey: string | null;
+  };
 
 function toDto(row: MembershipWithMember, today = gymToday()): MembershipDto {
   return {
@@ -106,14 +128,16 @@ function toDto(row: MembershipWithMember, today = gymToday()): MembershipDto {
       lastName: row.memberLastName,
       photoUrl: memberPhotoUrl(`/api/v1/members/${row.memberId}/photo`, row.memberPhotoKey),
     },
+    invoice: toInvoiceBrief(row, today),
   };
 }
 
 function selectWithMember(executor: DbExecutor) {
   return executor
-    .select({ ...getTableColumns(memberships), ...memberRefColumns })
+    .select({ ...getTableColumns(memberships), ...memberRefColumns, ...membershipInvoiceColumns })
     .from(memberships)
-    .innerJoin(members, eq(members.id, memberships.memberId));
+    .innerJoin(members, eq(members.id, memberships.memberId))
+    .leftJoin(invoices, joinMembershipInvoice);
 }
 
 async function readDto(executor: DbExecutor, id: string) {
@@ -265,20 +289,26 @@ interface ChangeRecord {
   reason?: string | null;
 }
 
-/** Every change writes one history event and one audit row, inside the caller's transaction. */
+/**
+ * Every change writes one history event and one audit row, inside the caller's transaction, and
+ * tells the member about the changes in requirements §12 (expired, cancelled, suspended, renewed).
+ */
 export async function recordChange(tx: DbExecutor, ctx: RequestContext, change: ChangeRecord) {
   const reason = change.reason?.trim() || null;
-  await tx.insert(membershipEvents).values({
-    membershipId: change.membership.id,
-    memberId: change.membership.memberId,
-    eventType: change.eventType,
-    fromStatus: change.fromStatus,
-    toStatus: change.toStatus,
-    oldValues: change.oldValues ?? null,
-    newValues: change.newValues ?? null,
-    reason,
-    actorUserId: ctx.actorUserId,
-  });
+  const [event] = await tx
+    .insert(membershipEvents)
+    .values({
+      membershipId: change.membership.id,
+      memberId: change.membership.memberId,
+      eventType: change.eventType,
+      fromStatus: change.fromStatus,
+      toStatus: change.toStatus,
+      oldValues: change.oldValues ?? null,
+      newValues: change.newValues ?? null,
+      reason,
+      actorUserId: ctx.actorUserId,
+    })
+    .returning({ id: membershipEvents.id });
   await recordAudit(tx, ctx, {
     action: change.auditAction,
     entityType: 'MEMBERSHIP',
@@ -288,6 +318,11 @@ export async function recordChange(tx: DbExecutor, ctx: RequestContext, change: 
       : (change.oldValues ?? null),
     after: { memberId: change.membership.memberId, status: change.toStatus, ...change.newValues },
     reason,
+  });
+  await notifyMembershipEvent(tx, {
+    id: event!.id,
+    membershipId: change.membership.id,
+    eventType: change.eventType,
   });
 }
 
@@ -314,12 +349,15 @@ const SORTS = {
 } as const;
 
 /** Memberships of current (not archived) members; archived members keep theirs as history. */
-export async function listMemberships(query: MembershipListQuery, scope: MembershipReadScope) {
-  // Trainers see assigned members only; none exist until Stage 6 adds assignments.
-  if (scope.kind === 'assigned') return paginated([], query.page, query.pageSize, 0);
-
+export async function listMemberships(
+  query: MembershipListQuery,
+  scope: MembershipReadScope,
+): Promise<Paginated<MembershipDto> | Paginated<TrainerMembershipDto>> {
   const today = gymToday();
   const filters: (SQL | undefined)[] = [isNull(members.archivedAt)];
+  if (scope.kind === 'assigned') {
+    filters.push(assignedMemberSql(memberships.memberId, scope.trainerUserId));
+  }
   if (query.memberId) filters.push(eq(memberships.memberId, query.memberId));
   if (query.planId) filters.push(eq(memberships.planId, query.planId));
   if (query.status)
@@ -355,12 +393,25 @@ export async function listMemberships(query: MembershipListQuery, scope: Members
       .innerJoin(members, eq(members.id, memberships.memberId))
       .where(where),
   ]);
-  return paginated(
-    rows.map((row) => toDto(row, today)),
-    query.page,
-    query.pageSize,
-    totals?.total ?? 0,
-  );
+  const dtos = rows.map((row) => toDto(row, today));
+  const total = totals?.total ?? 0;
+  return scope.kind === 'assigned'
+    ? paginated(dtos.map(toTrainerView), query.page, query.pageSize, total)
+    : paginated(dtos, query.page, query.pageSize, total);
+}
+
+/** §5: trainers see status and dates only — no price, invoice, access window or reasons. */
+export function toTrainerView(dto: MembershipDto): TrainerMembershipDto {
+  return {
+    id: dto.id,
+    memberId: dto.memberId,
+    planName: dto.planName,
+    status: dto.status,
+    effectiveStatus: dto.effectiveStatus,
+    startDate: dto.startDate,
+    endDate: dto.endDate,
+    member: dto.member,
+  };
 }
 
 export async function getMembership(id: string): Promise<MembershipDto> {
@@ -458,6 +509,7 @@ export async function assignMembership(
       const endDate = computeEndDate(startDate, plan.durationValue, plan.durationUnit);
       await assertNoOverlap(tx, input.memberId, startDate, endDate);
 
+      const settings = await loadSettingsRow(tx);
       const [created] = await tx
         .insert(memberships)
         .values({
@@ -488,14 +540,16 @@ export async function assignMembership(
           endDate,
         },
       });
+      await createMembershipInvoice(tx, ctx, created!, settings.invoiceDueDays);
       return readDto(tx, created!.id);
     }),
   );
 }
 
 /**
- * PENDING → ACTIVE. The C1 payment policy needs invoices (Stage 5); until then activation
- * behaves like the default setting (OFF) and is always allowed.
+ * PENDING → ACTIVE. With "require full payment before activation" ON (C1), the membership's
+ * invoice must be PAID; with it OFF (the default) activation is allowed and the outstanding
+ * balance stays visible on the card.
  */
 export async function activateMembership(id: string, input: Versioned, ctx: RequestContext) {
   return db.transaction(async (tx) => {
@@ -507,6 +561,9 @@ export async function activateMembership(id: string, input: Versioned, ctx: Requ
         ERROR_CODES.MEMBERSHIP_PERIOD_ENDED,
         `This membership's period ended on ${row.endDate}. Cancel it and assign a new one.`,
       );
+    }
+    if ((await loadSettingsRow(tx)).requireFullPaymentBeforeActivation) {
+      await assertMembershipPaid(tx, row);
     }
     await tx
       .update(memberships)
@@ -533,7 +590,8 @@ export async function activateMembership(id: string, input: Versioned, ctx: Requ
 /**
  * Renewal creates a new period linked by renewed_from_id; the old row and everything tied to it
  * stay untouched. It starts the day after the member's latest current end date (or today).
- * With the C1 policy OFF (the only behaviour until Stage 5) the renewal is active at once.
+ * C1: with the policy OFF (the default) the renewal is active at once; with it ON the renewal
+ * is created PENDING and is activated once its invoice is paid in full.
  */
 export async function renewMembership(
   id: string,
@@ -581,6 +639,8 @@ export async function renewMembership(
       const endDate = computeEndDate(startDate, plan.durationValue, plan.durationUnit);
       await assertNoOverlap(tx, source.memberId, startDate, endDate);
 
+      const settings = await loadSettingsRow(tx);
+      const activeNow = !settings.requireFullPaymentBeforeActivation || plan.priceMinor === 0;
       const [created] = await tx
         .insert(memberships)
         .values({
@@ -593,9 +653,9 @@ export async function renewMembership(
           accessEndTimeSnapshot: plan.accessEndTime,
           startDate,
           endDate,
-          status: 'ACTIVE',
-          activatedAt: new Date(),
-          activatedBy: ctx.actorUserId,
+          status: activeNow ? 'ACTIVE' : 'PENDING',
+          activatedAt: activeNow ? new Date() : null,
+          activatedBy: activeNow ? ctx.actorUserId : null,
           renewedFromId: source.id,
           createdBy: ctx.actorUserId,
         })
@@ -605,7 +665,7 @@ export async function renewMembership(
         eventType: 'RENEWED',
         auditAction: 'MEMBERSHIP_RENEWED',
         fromStatus: null,
-        toStatus: 'ACTIVE',
+        toStatus: activeNow ? 'ACTIVE' : 'PENDING',
         oldValues: {
           renewedFromId: source.id,
           previousPlanName: source.planNameSnapshot,
@@ -621,6 +681,7 @@ export async function renewMembership(
         },
         reason: input.reason,
       });
+      await createMembershipInvoice(tx, ctx, created!, settings.invoiceDueDays);
       return readDto(tx, created!.id);
     }),
   );
@@ -753,15 +814,27 @@ export async function reactivateMembership(
   );
 }
 
-/** Cancellation takes effect immediately; history, payments and attendance are kept. */
+/**
+ * Cancellation takes effect immediately; history, payments and attendance are kept. With
+ * `voidUnpaidInvoice` the membership's invoice is voided in the same transaction, unless it
+ * still holds money.
+ */
 export async function cancelMembership(
   id: string,
-  input: Versioned & { reason: string },
+  input: Versioned & { reason: string; voidUnpaidInvoice?: boolean },
   ctx: RequestContext,
 ) {
   return db.transaction(async (tx) => {
     const row = await lockMembership(tx, id, input.version);
     assertAction(row, 'cancel');
+    const voidedInvoice = input.voidUnpaidInvoice
+      ? await voidCancelledMembershipInvoice(
+          tx,
+          id,
+          `Membership cancelled: ${input.reason}`.slice(0, 500),
+          ctx,
+        )
+      : null;
     await tx
       .update(memberships)
       .set({
@@ -781,7 +854,11 @@ export async function cancelMembership(
       fromStatus: row.status,
       toStatus: 'CANCELLED',
       oldValues: row.status === 'SUSPENDED' ? { suspensionReason: row.suspensionReason } : null,
-      newValues: { startDate: row.startDate, endDate: row.endDate },
+      newValues: {
+        startDate: row.startDate,
+        endDate: row.endDate,
+        ...(voidedInvoice && { voidedInvoice }),
+      },
       reason: input.reason,
     });
     return readDto(tx, id);

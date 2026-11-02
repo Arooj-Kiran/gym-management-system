@@ -17,7 +17,11 @@ type SettingsRow = typeof gymSettings.$inferSelect;
 type SettingsUpdate = z.output<typeof updateSettingsSchema>;
 type SettingsValues = Pick<SettingsRow, (typeof SETTINGS_KEYS)[number]>;
 
-async function loadRow(executor: DbExecutor, forUpdate = false): Promise<SettingsRow> {
+/** The single settings row; services that enforce a setting read it inside their transaction. */
+export async function loadSettingsRow(
+  executor: DbExecutor,
+  forUpdate = false,
+): Promise<SettingsRow> {
   const query = executor.select().from(gymSettings).limit(1);
   const [row] = forUpdate ? await query.for('update') : await query;
   // The migration inserts the single row; its absence means the database was not migrated.
@@ -35,6 +39,7 @@ function toDto(row: SettingsRow): GymSettingsDto {
     invoiceDueDays: row.invoiceDueDays,
     biometricRetentionDays: row.biometricRetentionDays,
     classBookingCutoffMinutes: row.classBookingCutoffMinutes,
+    requireFullPaymentBeforeActivation: row.requireFullPaymentBeforeActivation,
     timezone: config.gymTimezone,
     currencyCode: config.currencyCode,
     updatedAt: row.updatedAt.toISOString(),
@@ -42,11 +47,11 @@ function toDto(row: SettingsRow): GymSettingsDto {
 }
 
 export async function getSettings(): Promise<GymSettingsDto> {
-  return toDto(await loadRow(db));
+  return toDto(await loadSettingsRow(db));
 }
 
 export async function getGymName(): Promise<string> {
-  return (await loadRow(db)).gymName;
+  return (await loadSettingsRow(db)).gymName;
 }
 
 /** Admin-only (settings:manage). Every effective change writes SETTINGS_CHANGED with old and new values. */
@@ -55,7 +60,7 @@ export async function updateSettings(
   ctx: RequestContext,
 ): Promise<GymSettingsDto> {
   return db.transaction(async (tx) => {
-    const row = await loadRow(tx, true);
+    const row = await loadSettingsRow(tx, true);
     const current: SettingsValues = row;
     const requested: Partial<SettingsValues> = {};
     for (const key of SETTINGS_KEYS) {

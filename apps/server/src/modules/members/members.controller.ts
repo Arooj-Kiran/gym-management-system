@@ -7,7 +7,9 @@ import {
   createPortalAccountSchema,
   idParamSchema,
   memberListQuerySchema,
+  permissionScope,
   restoreMemberSchema,
+  SCOPES,
   updateMemberSchema,
 } from '@gms/shared';
 import type { Request, Response } from 'express';
@@ -22,6 +24,10 @@ const scopeOf = (req: Request) => memberReadScope(requireAuthContext(req));
 
 export async function list(req: Request, res: Response) {
   const query = parseInput(memberListQuerySchema, req.query);
+  // The balance filter reveals who owes money: only for roles that read every payment.
+  if (permissionScope(requireAuthContext(req).user.role, 'payments:read') !== SCOPES.ALL) {
+    query.paymentStatus = undefined;
+  }
   res.json(await membersService.listMembers(query, scopeOf(req)));
 }
 
@@ -65,7 +71,7 @@ export async function uploadPhoto(req: Request, res: Response) {
 
 export async function getPhoto(req: Request, res: Response) {
   const id = memberId(req);
-  assertCanReadMember(scopeOf(req), id);
+  await assertCanReadMember(scopeOf(req), id);
   sendImage(res, await membersService.readPhoto(id));
 }
 

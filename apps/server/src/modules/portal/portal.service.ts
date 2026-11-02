@@ -7,15 +7,21 @@ import {
   type MyProfileDto,
   type updateMyProfileSchema,
 } from '@gms/shared';
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, isNull, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { db, type DbExecutor } from '../../db/client';
-import { members, memberships } from '../../db/schema';
+import { invoices, members, memberships } from '../../db/schema';
 import { diffFields, recordAudit } from '../../lib/audit';
 import { gymToday } from '../../lib/dates';
 import { notFound } from '../../lib/errors';
 import type { RequestContext } from '../../lib/request-context';
 import type { UploadedImage } from '../../middleware/upload';
+import {
+  joinMembershipInvoice,
+  membershipInvoiceColumns,
+  toInvoiceBrief,
+  type MembershipInvoiceColumns,
+} from '../billing/billing.service';
 import { memberPhotoUrl, readPhoto, replacePhoto } from '../members/members.service';
 import { currentMembershipSql } from '../memberships/current-membership';
 import { getSettings } from '../settings/settings.service';
@@ -41,7 +47,7 @@ function toDto(row: MemberRow): MyProfileDto {
 }
 
 /** The member ID always comes from the session, never from the request (PLAN §4.10). */
-async function requireOwnRow(executor: DbExecutor, userId: string, forUpdate = false) {
+export async function requireOwnRow(executor: DbExecutor, userId: string, forUpdate = false) {
   const query = executor
     .select()
     .from(members)
@@ -101,7 +107,7 @@ export async function readMyPhoto(userId: string) {
 
 // --- Membership (read-only) -----------------------------------------------------------------
 
-type MembershipRow = typeof memberships.$inferSelect;
+type MembershipRow = typeof memberships.$inferSelect & MembershipInvoiceColumns;
 
 /** Only what a member needs: no reasons, staff names or internal links. */
 function toMyMembership(row: MembershipRow, today: string): MyMembershipDto {
@@ -116,13 +122,15 @@ function toMyMembership(row: MembershipRow, today: string): MyMembershipDto {
     accessDays: row.accessDaysSnapshot,
     accessStartTime: row.accessStartTimeSnapshot?.slice(0, 5) ?? null,
     accessEndTime: row.accessEndTimeSnapshot?.slice(0, 5) ?? null,
+    invoice: toInvoiceBrief(row, today),
   };
 }
 
 async function ownMemberships(memberId: string) {
   return db
-    .select()
+    .select({ ...getTableColumns(memberships), ...membershipInvoiceColumns })
     .from(memberships)
+    .leftJoin(invoices, joinMembershipInvoice)
     .where(eq(memberships.memberId, memberId))
     .orderBy(desc(memberships.startDate), desc(memberships.createdAt));
 }

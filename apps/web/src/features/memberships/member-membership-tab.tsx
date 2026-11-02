@@ -15,12 +15,13 @@ import {
   CircleX,
   History,
   Play,
+  ReceiptText,
   RefreshCw,
   Ticket,
 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
-import { errorMessage } from '../../api/client';
+import { ApiError, errorMessage } from '../../api/client';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card, CardHeader } from '../../components/ui/card';
@@ -35,9 +36,13 @@ import {
   formatRelative,
   gymTodayIso,
 } from '../../lib/format';
+import { isOpenInvoice } from '../billing/billing-format';
+import { InvoiceStatusBadge } from '../billing/invoice-status-badge';
+import { RecordPaymentDialog } from '../billing/record-payment-dialog';
 import { planDays, planHours } from '../plans/plan-format';
 import {
   AssignMembershipDialog,
+  CancelMembershipDialog,
   ExtendMembershipDialog,
   ReactivateMembershipDialog,
   RenewMembershipDialog,
@@ -54,7 +59,6 @@ import {
 import { MembershipStatusBadge } from './membership-status-badge';
 import {
   useActivateMembership,
-  useCancelMembership,
   useMemberMembershipEvents,
   useMemberMemberships,
   useSuspendMembership,
@@ -130,17 +134,81 @@ function PeriodProgress({ membership, today }: { membership: MembershipDto; toda
   );
 }
 
+/** C1: what is still owed for this period, with a shortcut to take the payment. */
+function PaymentStrip({
+  membership,
+  onPay,
+}: {
+  membership: MembershipDto;
+  onPay: (invoiceId: string) => void;
+}) {
+  const can = useCan();
+  const { gym } = useSession();
+  const invoice = membership.invoice;
+  if (!can('payments:read')) return null;
+  if (!invoice) {
+    return (
+      <p className="mt-4 text-13 text-fg-muted">Free plan — nothing to pay for this period.</p>
+    );
+  }
+  const open = isOpenInvoice(invoice.status);
+  return (
+    <div
+      className={cn(
+        'mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border px-3 py-2.5',
+        invoice.status === 'OVERDUE'
+          ? 'border-danger/25 bg-danger-subtle'
+          : open
+            ? 'border-warning-text/25 bg-warning-subtle'
+            : 'border-border bg-surface-muted/50',
+      )}
+    >
+      <InvoiceStatusBadge status={invoice.status} />
+      <p className="min-w-0 flex-1 text-13 text-fg">
+        {open ? (
+          <>
+            <span className="font-semibold tabular-nums">
+              {formatMoney(invoice.balanceMinor, gym.currencyCode)}
+            </span>{' '}
+            outstanding
+            <span className="text-fg-secondary">
+              {' '}
+              · {invoice.invoiceNumber} due {formatDate(invoice.dueDate)}
+            </span>
+          </>
+        ) : (
+          <span className="text-fg-secondary">
+            {invoice.invoiceNumber} · {formatMoney(invoice.amountDueMinor, gym.currencyCode)}
+          </span>
+        )}
+      </p>
+      {open && can('payments:record') && (
+        <Button
+          size="sm"
+          variant="secondary"
+          icon={<ReceiptText aria-hidden />}
+          onClick={() => onPay(invoice.id)}
+        >
+          Record payment
+        </Button>
+      )}
+    </div>
+  );
+}
+
 function MembershipPanel({
   membership,
   today,
   actions,
   onAction,
+  onPay,
   eyebrow,
 }: {
   membership: MembershipDto;
   today: string;
   actions: MembershipAction[];
   onAction: (action: MembershipAction, membership: MembershipDto) => void;
+  onPay: (invoiceId: string) => void;
   eyebrow?: string;
 }) {
   const { gym } = useSession();
@@ -172,6 +240,7 @@ function MembershipPanel({
           <Fact label="Access days">{planDays(membership.accessDays)}</Fact>
           <Fact label="Access hours">{planHours(membership)}</Fact>
         </dl>
+        {status !== 'CANCELLED' && <PaymentStrip membership={membership} onPay={onPay} />}
         {status === 'SUSPENDED' && membership.suspendedAt && (
           <p className="mt-4 rounded-md bg-warning-subtle px-3 py-2 text-13 text-warning-text">
             Suspended since {formatDate(gymDateOf(membership.suspendedAt))}
@@ -263,8 +332,11 @@ function eventSummary(event: MembershipEventDto): string | null {
   switch (event.eventType) {
     case 'CREATED':
     case 'ACTIVATED':
-    case 'CANCELLED':
       return `${date(after.startDate)} – ${date(after.endDate)}`;
+    case 'CANCELLED':
+      return `${date(after.startDate)} – ${date(after.endDate)}${
+        typeof after.voidedInvoice === 'string' ? `; invoice ${after.voidedInvoice} voided` : ''
+      }`;
     case 'RENEWED':
       return `${date(after.startDate)} – ${date(after.endDate)}${
         typeof before.previousPlanName === 'string' ? `, after ${before.previousPlanName}` : ''
@@ -352,9 +424,9 @@ export function MemberMembershipTab({ member }: { member: MemberDto }) {
   const today = gymTodayIso();
   const memberships = useMemberMemberships(member.id);
   const [dialog, setDialog] = useState<OpenDialog | null>(null);
+  const [payingId, setPayingId] = useState<string | null>(null);
   const activate = useActivateMembership();
   const suspend = useSuspendMembership();
-  const cancel = useCancelMembership();
   const archived = Boolean(member.archivedAt);
   const name = fullName(member);
   const rows = memberships.data ?? [];
@@ -437,6 +509,7 @@ export function MemberMembershipTab({ member }: { member: MemberDto }) {
             today={today}
             actions={actionsFor(current)}
             onAction={open}
+            onPay={setPayingId}
           />
           {next && (
             <div className="border-t border-border">
@@ -446,6 +519,7 @@ export function MemberMembershipTab({ member }: { member: MemberDto }) {
                 today={today}
                 actions={actionsFor(next)}
                 onAction={open}
+                onPay={setPayingId}
               />
             </div>
           )}
@@ -460,6 +534,13 @@ export function MemberMembershipTab({ member }: { member: MemberDto }) {
       {body}
       <HistoryTimeline memberId={member.id} />
 
+      {can('payments:record') && (
+        <RecordPaymentDialog
+          open={payingId !== null}
+          onOpenChange={(next) => !next && setPayingId(null)}
+          invoiceId={payingId ?? undefined}
+        />
+      )}
       {canAssign && (
         <AssignMembershipDialog
           member={member}
@@ -496,7 +577,24 @@ export function MemberMembershipTab({ member }: { member: MemberDto }) {
             onConfirm={(reason) =>
               activate.mutate(
                 { id: target.id, reason, version: target.version },
-                done(`Membership activated for ${name}`),
+                {
+                  ...done(`Membership activated for ${name}`),
+                  onError: (error) => {
+                    // C1 is on and the invoice is not paid in full: offer to take the payment.
+                    const invoiceId =
+                      error instanceof ApiError && error.code === 'PAYMENT_REQUIRED'
+                        ? error.extra.invoiceId
+                        : null;
+                    if (typeof invoiceId === 'string' && can('payments:record')) {
+                      close();
+                      toast.error(errorMessage(error), {
+                        action: { label: 'Record payment', onClick: () => setPayingId(invoiceId) },
+                      });
+                    } else {
+                      toast.error(errorMessage(error));
+                    }
+                  },
+                },
               )
             }
           />
@@ -515,20 +613,10 @@ export function MemberMembershipTab({ member }: { member: MemberDto }) {
               )
             }
           />
-          <ConfirmDialog
+          <CancelMembershipDialog
             {...dialogProps('cancel')}
-            title={`Cancel ${name}'s membership?`}
-            description={`${target.planName} (${membershipPeriod(target)}) stops at once and cannot be restarted. Entry is refused from now on; its history is kept.`}
-            confirmLabel="Cancel membership"
-            tone="danger"
-            reason="required"
-            loading={cancel.isPending}
-            onConfirm={(reason) =>
-              cancel.mutate(
-                { id: target.id, reason: reason ?? '', version: target.version },
-                done(`Membership cancelled for ${name}`),
-              )
-            }
+            membership={target}
+            memberName={name}
           />
         </>
       )}

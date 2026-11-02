@@ -1,98 +1,15 @@
 import { ACCESS_REASON_LABELS, type AccessDecision } from '@gms/shared';
-import { CircleX, SearchX } from 'lucide-react';
+import { CircleX } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { errorMessage } from '../../api/client';
 import { Button } from '../../components/ui/button';
 import { Dialog } from '../../components/ui/dialog';
 import { FormField, Textarea } from '../../components/ui/form-field';
-import { SearchInput } from '../../components/ui/search-input';
-import { ListSkeleton } from '../../components/ui/states';
 import { fullName } from '../../lib/auth';
-import { cn } from '../../lib/cn';
-import { MembershipStatusBadge } from '../memberships/membership-status-badge';
 import { MemberAvatar } from '../members/member-avatar';
-import { useMemberList } from '../members/members-api';
+import { MemberPicker, type PickedMember } from '../members/member-picker';
 import { useManualCheckIn } from './attendance-api';
-
-export interface CheckInMember {
-  id: string;
-  memberCode: string;
-  firstName: string;
-  lastName: string;
-  photoUrl: string | null;
-}
-
-function MemberPicker({
-  selected,
-  onSelect,
-}: {
-  selected: CheckInMember | null;
-  onSelect: (member: CheckInMember) => void;
-}) {
-  const [q, setQ] = useState('');
-  const list = useMemberList({ q: q || undefined, pageSize: 6 });
-  return (
-    <fieldset className="flex flex-col gap-2">
-      <legend className="mb-1.5 text-13 font-medium text-fg">Member</legend>
-      <SearchInput
-        value={q}
-        onChange={setQ}
-        label="Search members"
-        placeholder="Name, member code or phone"
-      />
-      <div className="max-h-64 overflow-y-auto rounded-md border border-border">
-        {list.isPending ? (
-          <ListSkeleton rows={3} label="Loading members" />
-        ) : list.isError ? (
-          <p role="alert" className="px-3 py-4 text-13 text-danger-text">
-            {errorMessage(list.error)}
-          </p>
-        ) : list.data.data.length === 0 ? (
-          <p className="flex items-center gap-2 px-3 py-4 text-13 text-fg-muted">
-            <SearchX className="size-4" aria-hidden /> No members match “{q}”.
-          </p>
-        ) : (
-          <ul className="divide-y divide-border">
-            {list.data.data.map((member) => {
-              const checked = selected?.id === member.id;
-              return (
-                <li key={member.id}>
-                  <label
-                    className={cn(
-                      'flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors duration-150 hover:bg-surface-hover has-focus-visible:outline-2 has-focus-visible:-outline-offset-2 has-focus-visible:outline-focus',
-                      checked && 'bg-primary-subtle hover:bg-primary-subtle',
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="check-in-member"
-                      className="sr-only"
-                      checked={checked}
-                      onChange={() => onSelect(member)}
-                    />
-                    <MemberAvatar member={member} size="sm" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-fg">
-                        {fullName(member)}
-                      </span>
-                      <span className="block truncate font-mono text-xs text-fg-muted">
-                        {member.memberCode}
-                      </span>
-                    </span>
-                    {member.currentMembership && (
-                      <MembershipStatusBadge status={member.currentMembership.effectiveStatus} />
-                    )}
-                  </label>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-    </fieldset>
-  );
-}
 
 /**
  * Staff check a member in by hand (no fingerprint, scanner down). The server applies the same
@@ -106,9 +23,9 @@ export function ManualCheckInDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Check in this member (member page); otherwise staff search for one. */
-  member?: CheckInMember;
+  member?: PickedMember;
 }) {
-  const [picked, setPicked] = useState<CheckInMember | null>(null);
+  const [picked, setPicked] = useState<PickedMember | null>(null);
   const [reason, setReason] = useState('');
   const [touched, setTouched] = useState(false);
   const [denial, setDenial] = useState<AccessDecision | null>(null);

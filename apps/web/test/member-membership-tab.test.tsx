@@ -1,4 +1,11 @@
-import { addDays, type MemberDto, type MembershipDto, type Role } from '@gms/shared';
+import {
+  addDays,
+  type MemberDto,
+  type MembershipDto,
+  type MembershipEventDto,
+  type MembershipInvoiceBrief,
+  type Role,
+} from '@gms/shared';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -41,11 +48,24 @@ function membership(overrides: Partial<MembershipDto> = {}): MembershipDto {
     createdAt: '2026-10-07T05:00:00.000Z',
     updatedAt: '2026-10-07T05:00:00.000Z',
     member: { ...MEMBER, photoUrl: null },
+    invoice: null,
     ...overrides,
   };
 }
 
-function setup(role: Role, rows: MembershipDto[]) {
+function invoice(overrides: Partial<MembershipInvoiceBrief> = {}): MembershipInvoiceBrief {
+  return {
+    id: '3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f',
+    invoiceNumber: 'INV-000014',
+    status: 'PENDING',
+    amountDueMinor: 800_000,
+    balanceMinor: 800_000,
+    dueDate: addDays(TODAY, -10),
+    ...overrides,
+  };
+}
+
+function setup(role: Role, rows: MembershipDto[], events: MembershipEventDto[] = []) {
   const posts: { url: string; body: unknown }[] = [];
   vi.spyOn(globalThis, 'fetch').mockImplementation(
     mockFetch((url, init) => {
@@ -56,7 +76,7 @@ function setup(role: Role, rows: MembershipDto[]) {
       if (url.includes(`/members/${MEMBER.id}/memberships`))
         return { status: 200, body: { data: rows } };
       if (url.includes(`/members/${MEMBER.id}/membership-events`))
-        return { status: 200, body: { data: [] } };
+        return { status: 200, body: { data: events } };
       return { status: 404, body: { error: { code: 'NOT_FOUND', message: 'Not found' } } };
     }),
   );
@@ -101,7 +121,97 @@ describe('MemberMembershipTab', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Cancel membership' }));
     await vi.waitFor(() => expect(posts).toHaveLength(1));
     expect(posts[0]!.url).toContain(`/memberships/${membership().id}/cancel`);
-    expect(posts[0]!.body).toEqual({ reason: 'Moved to another city', version: 3 });
+    // A free plan has no invoice, so there is nothing to offer to void.
+    expect(within(dialog).queryByRole('checkbox')).toBeNull();
+    expect(posts[0]!.body).toEqual({
+      reason: 'Moved to another city',
+      voidUnpaidInvoice: false,
+      version: 3,
+    });
+  });
+
+  async function openCancel(role: Role, row: MembershipDto) {
+    const posts = setup(role, [row]);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Cancel membership' }));
+    const dialog = await screen.findByRole('dialog', { name: /Cancel Sana Qureshi's membership/ });
+    await user.type(within(dialog).getByLabelText(/Reason/), 'Moved to another city');
+    return { posts, user, dialog };
+  }
+
+  it('voids the unpaid invoice with the cancellation by default', async () => {
+    const { posts, user, dialog } = await openCancel('MANAGER', membership({ invoice: invoice() }));
+    const box = within(dialog).getByRole('checkbox', {
+      name: /Also void its unpaid invoice INV-000014/,
+    });
+    expect(box).toBeChecked();
+    expect(within(dialog).getByText('Sana Qureshi will no longer owe it.')).toBeVisible();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel membership' }));
+    await vi.waitFor(() => expect(posts).toHaveLength(1));
+    expect(posts[0]!.body).toMatchObject({ voidUnpaidInvoice: true, version: 3 });
+  });
+
+  it('keeps the invoice owed when the box is unticked', async () => {
+    const { posts, user, dialog } = await openCancel('ADMIN', membership({ invoice: invoice() }));
+    await user.click(within(dialog).getByRole('checkbox'));
+    expect(within(dialog).getByText('The invoice stays open and is still owed.')).toBeVisible();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel membership' }));
+    await vi.waitFor(() => expect(posts).toHaveLength(1));
+    expect(posts[0]!.body).toMatchObject({ voidUnpaidInvoice: false });
+  });
+
+  it('does not offer to void an invoice that has money paid on it', async () => {
+    const partlyPaid = invoice({ status: 'PARTIALLY_PAID', balanceMinor: 300_000 });
+    const { posts, user, dialog } = await openCancel(
+      'MANAGER',
+      membership({ invoice: partlyPaid }),
+    );
+    expect(within(dialog).queryByRole('checkbox')).toBeNull();
+    expect(within(dialog).getByText(/INV-000014 has .*5,000.* paid on it/)).toBeVisible();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel membership' }));
+    await vi.waitFor(() => expect(posts).toHaveLength(1));
+    expect(posts[0]!.body).toMatchObject({ voidUnpaidInvoice: false });
+  });
+
+  it('does not offer to void an invoice that is already void', async () => {
+    const { dialog } = await openCancel(
+      'MANAGER',
+      membership({ invoice: invoice({ status: 'VOID' }) }),
+    );
+    expect(within(dialog).queryByRole('checkbox')).toBeNull();
+    expect(within(dialog).queryByText(/paid on it/)).toBeNull();
+  });
+
+  it('notes a voided invoice in the cancellation history', async () => {
+    const row = membership({ status: 'CANCELLED', effectiveStatus: 'CANCELLED' });
+    setup(
+      'MANAGER',
+      [row],
+      [
+        {
+          id: '4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a',
+          membershipId: row.id,
+          planName: row.planName,
+          eventType: 'CANCELLED',
+          fromStatus: 'ACTIVE',
+          toStatus: 'CANCELLED',
+          oldValues: null,
+          newValues: {
+            startDate: row.startDate,
+            endDate: row.endDate,
+            voidedInvoice: 'INV-000014',
+          },
+          reason: 'Moved to another city',
+          actorName: 'Omar Farooq',
+          createdAt: '2026-10-28T09:00:00.000Z',
+        },
+      ],
+    );
+    const history = await screen.findByRole('list', { name: 'Membership history' });
+    expect(within(history).getByText(/invoice INV-000014 voided/)).toBeVisible();
   });
 
   it('offers to assign a plan when the member has none', async () => {

@@ -44,7 +44,13 @@ test('the front desk assigns and activates a membership; a manager cancels it', 
   await current.getByRole('button', { name: 'Activate' }).click();
   const activate = page.getByRole('dialog', { name: `Activate ${NAME}'s membership?` });
   await activate.getByRole('button', { name: 'Activate' }).click();
-  await expect(page.getByText(`Membership activated for ${NAME}`)).toBeVisible();
+  const activated = page
+    .getByRole('listitem')
+    .filter({ hasText: `Membership activated for ${NAME}` });
+  await expect(activated).toBeVisible();
+  // Dismiss it before the axe scan below: a toast still fading in is not something axe can judge.
+  await activated.getByRole('button', { name: 'Close toast' }).click();
+  await expect(activated).toBeHidden();
   await expect(current.getByText('Active', { exact: true })).toBeVisible();
 
   const history = page.getByRole('list', { name: 'Membership history' });
@@ -63,17 +69,24 @@ test('the front desk assigns and activates a membership; a manager cancels it', 
   await expect(page.getByRole('heading', { name: PLAN.name })).toBeVisible();
   await expect(page.getByText('days left, including today')).toBeVisible();
 
-  // Manager: cancelling needs a reason and is recorded in the timeline.
+  // Manager: cancelling needs a reason and is recorded in the timeline. The unpaid invoice is
+  // voided with it unless the box is unticked.
   await page.context().clearCookies();
   await signInAs(page, 'MANAGER');
   await openMembershipTab(page);
   await current.getByRole('button', { name: 'Cancel membership' }).click();
   const cancel = page.getByRole('dialog', { name: `Cancel ${NAME}'s membership?` });
+  await expect(
+    cancel.getByRole('checkbox', { name: /Also void its unpaid invoice/ }),
+  ).toBeChecked();
   await cancel.getByLabel(/Reason/).fill('Moving to Lahore');
+  await expectNoAxeViolations(page);
   await cancel.getByRole('button', { name: 'Cancel membership' }).click();
   await expect(page.getByText(`Membership cancelled for ${NAME}`)).toBeVisible();
+  await expect(page.getByText(/Invoice INV-\d+ was voided\./)).toBeVisible();
   await expect(current.getByText('Cancelled', { exact: true })).toBeVisible();
   await expect(history.getByText('Moving to Lahore')).toBeVisible();
+  await expect(history.getByText(/invoice INV-\d+ voided/)).toBeVisible();
 
   // The whole-gym list shows the period with its final status.
   await page.goto('/memberships?status=CANCELLED');

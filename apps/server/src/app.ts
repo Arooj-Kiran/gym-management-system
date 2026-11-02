@@ -14,19 +14,41 @@ import { requestId } from './middleware/request-id';
 import { checkOrigin, loadSession } from './middleware/session';
 import { accessSettings, type AccessSettings } from './modules/access/access-settings';
 import { accessRoutes } from './modules/access/access.routes';
+import { appointmentsRoutes } from './modules/appointments/appointments.routes';
 import { attendanceRoutes } from './modules/attendance/attendance.routes';
 import { auditRoutes } from './modules/audit/audit.routes';
 import { authRoutes } from './modules/auth/auth.routes';
+import { invoicesRoutes, paymentsRoutes, refundsRoutes } from './modules/billing/billing.routes';
 import { biometricRoutes } from './modules/biometrics/biometrics.routes';
+import {
+  bookingsRoutes,
+  classesRoutes,
+  classSessionsRoutes,
+} from './modules/classes/classes.routes';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes';
 import { devicesRoutes } from './modules/devices/devices.routes';
+import { equipmentRoutes } from './modules/equipment/equipment.routes';
+import { exercisesRoutes } from './modules/exercises/exercises.routes';
 import { healthRoutes } from './modules/health/health.routes';
 import { membersRoutes } from './modules/members/members.routes';
 import { membershipsRoutes } from './modules/memberships/memberships.routes';
+import { notificationsRoutes } from './modules/notifications/notifications.routes';
 import { plansRoutes } from './modules/plans/plans.routes';
 import { portalRoutes } from './modules/portal/portal.routes';
+import { reportsRoutes } from './modules/reports/reports.routes';
+import { shiftsRoutes } from './modules/schedules/schedules.routes';
 import { settingsRoutes } from './modules/settings/settings.routes';
 import { staffRoutes } from './modules/staff/staff.routes';
+import {
+  timeOffRoutes,
+  trainerAssignmentRoutes,
+  trainersRoutes,
+} from './modules/trainers/trainers.routes';
+import {
+  workoutAssignmentsRoutes,
+  workoutLogsRoutes,
+  workoutPlansRoutes,
+} from './modules/workouts/workouts.routes';
 
 export interface AppOptions {
   logger?: Logger;
@@ -42,6 +64,7 @@ export function createApp(options: AppOptions = {}) {
   const rateLimits: RateLimitOptions = {
     loginMax: config.loginRateLimitMax,
     loginWindowMinutes: config.loginRateLimitWindowMinutes,
+    reportsPerMinute: 60,
     ...options.rateLimits,
   };
   const access = accessSettings(options.access);
@@ -80,6 +103,11 @@ export function createApp(options: AppOptions = {}) {
   app.use(loadSession);
 
   const api = Router();
+  // API responses carry personal, financial and access data: no browser or proxy may keep them.
+  api.use((_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+  });
   api.use('/health', healthRoutes());
   api.use('/auth', authRoutes(rateLimits));
   api.use('/staff', staffRoutes());
@@ -92,8 +120,26 @@ export function createApp(options: AppOptions = {}) {
   api.use('/attendance', attendanceRoutes(access));
   api.use('/devices', devicesRoutes());
   api.use('/biometric', biometricRoutes());
+  api.use('/invoices', invoicesRoutes());
+  api.use('/payments', paymentsRoutes());
+  api.use('/refunds', refundsRoutes());
+  api.use('/trainers', trainersRoutes());
+  api.use('/time-off', timeOffRoutes());
+  api.use('/trainer-assignments', trainerAssignmentRoutes());
+  api.use('/shifts', shiftsRoutes());
+  api.use('/classes', classesRoutes());
+  api.use('/class-sessions', classSessionsRoutes());
+  api.use('/bookings', bookingsRoutes());
+  api.use('/appointments', appointmentsRoutes());
+  api.use('/exercises', exercisesRoutes());
+  api.use('/workout-plans', workoutPlansRoutes());
+  api.use('/workout-assignments', workoutAssignmentsRoutes());
+  api.use('/workout-logs', workoutLogsRoutes());
+  api.use('/equipment', equipmentRoutes());
+  api.use('/notifications', notificationsRoutes());
   api.use('/me', portalRoutes());
-  api.use('/dashboard', dashboardRoutes());
+  api.use('/dashboard', dashboardRoutes(rateLimits));
+  api.use('/reports', reportsRoutes(rateLimits));
   api.use(notFoundHandler);
   app.use('/api/v1', api);
   app.use('/api', notFoundHandler);

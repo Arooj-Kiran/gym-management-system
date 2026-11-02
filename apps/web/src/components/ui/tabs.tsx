@@ -49,40 +49,44 @@ export function Tabs<T extends string>({
     refs.current.get(next)?.focus();
   };
 
+  // On narrow screens the row scrolls inside its own box instead of widening the page. The
+  // scroller wraps the tablist so the tabs' 1px overlap with its bottom border is not clipped.
   return (
-    <div
-      role="tablist"
-      aria-label={label}
-      onKeyDown={onKeyDown}
-      className={cn('flex gap-1 border-b border-border', className)}
-    >
-      {tabs.map((tab) => {
-        const selected = tab.value === value;
-        return (
-          <button
-            key={tab.value}
-            ref={(node) => {
-              if (node) refs.current.set(tab.value, node);
-              else refs.current.delete(tab.value);
-            }}
-            type="button"
-            role="tab"
-            id={tabId(idPrefix, tab.value)}
-            aria-selected={selected}
-            aria-controls={panelId(idPrefix, tab.value)}
-            tabIndex={selected ? 0 : -1}
-            onClick={() => onChange(tab.value)}
-            className={cn(
-              '-mb-px inline-flex h-10 cursor-pointer items-center gap-2 border-b-2 px-3 text-sm font-medium transition-colors duration-150 focus-visible:-outline-offset-2',
-              selected
-                ? 'border-primary text-fg'
-                : 'border-transparent text-fg-secondary hover:border-border-strong hover:text-fg',
-            )}
-          >
-            {tab.label}
-          </button>
-        );
-      })}
+    <div className={cn('overflow-x-auto [scrollbar-width:thin]', className)}>
+      <div
+        role="tablist"
+        aria-label={label}
+        onKeyDown={onKeyDown}
+        className="flex min-w-max gap-1 border-b border-border"
+      >
+        {tabs.map((tab) => {
+          const selected = tab.value === value;
+          return (
+            <button
+              key={tab.value}
+              ref={(node) => {
+                if (node) refs.current.set(tab.value, node);
+                else refs.current.delete(tab.value);
+              }}
+              type="button"
+              role="tab"
+              id={tabId(idPrefix, tab.value)}
+              aria-selected={selected}
+              aria-controls={panelId(idPrefix, tab.value)}
+              tabIndex={selected ? 0 : -1}
+              onClick={() => onChange(tab.value)}
+              className={cn(
+                '-mb-px inline-flex h-10 cursor-pointer items-center gap-2 border-b-2 px-3 text-sm font-medium transition-colors duration-150 focus-visible:-outline-offset-2',
+                selected
+                  ? 'border-primary text-fg'
+                  : 'border-transparent text-fg-secondary hover:border-border-strong hover:text-fg',
+              )}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

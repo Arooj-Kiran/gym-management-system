@@ -27,6 +27,8 @@ const settingsFields = {
   invoiceDueDays: wholeNumber(...SETTINGS_LIMITS.invoiceDueDays),
   biometricRetentionDays: wholeNumber(...SETTINGS_LIMITS.biometricRetentionDays),
   classBookingCutoffMinutes: wholeNumber(...SETTINGS_LIMITS.classBookingCutoffMinutes),
+  /** C1: when on, a membership is activated only once its invoice is paid in full. */
+  requireFullPaymentBeforeActivation: z.boolean({ error: 'Choose on or off' }),
 };
 
 export const SETTINGS_KEYS = Object.keys(settingsFields) as (keyof typeof settingsFields)[];
@@ -47,6 +49,7 @@ export interface GymSettingsDto {
   invoiceDueDays: number;
   biometricRetentionDays: number;
   classBookingCutoffMinutes: number;
+  requireFullPaymentBeforeActivation: boolean;
   timezone: string;
   currencyCode: string;
   updatedAt: string;

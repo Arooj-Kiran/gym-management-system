@@ -77,6 +77,11 @@ function useAttendanceFilters() {
 }
 
 const GRID = 'lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,0.9fr)_auto]';
+/**
+ * Every row is its own grid, so the actions column gets one fixed width in each row and in the
+ * header (its widest buttons: "Check out" and "Details"); otherwise the columns shift per row.
+ */
+const actionsWidth = (canCheckOut: boolean) => (canCheckOut ? 'lg:w-48' : 'lg:w-18');
 
 function AttendanceRow({
   record,
@@ -153,7 +158,12 @@ function AttendanceRow({
           </Badge>
         )}
       </span>
-      <span className="col-span-2 flex gap-2 pl-11 lg:col-span-1 lg:justify-end lg:pl-0">
+      <span
+        className={cn(
+          'col-span-2 flex gap-2 pl-11 lg:col-span-1 lg:justify-end lg:pl-0',
+          actionsWidth(canCheckOut),
+        )}
+      >
         {canCheckOut && !record.checkOutAt && !voided && (
           <Button size="sm" variant="secondary" icon={<LogOut aria-hidden />} onClick={onCheckOut}>
             Check out
@@ -277,7 +287,7 @@ export function AttendancePage() {
           <span>In → out</span>
           <span>Source</span>
           <span>Now</span>
-          <span className="sr-only">Actions</span>
+          <span className={actionsWidth(can('attendance:check-out'))} />
         </div>
 
         {list.isPending ? (

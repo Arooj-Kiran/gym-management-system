@@ -8,10 +8,12 @@ import type { RequestContext } from '../../lib/request-context';
 import { closeDb, db } from '../client';
 import { members, membershipPlans } from '../schema';
 import { seedAccessDemo } from './demo-access';
+import { seedBillingDemo } from './demo-billing';
+import { seedScheduleDemo } from './demo-schedule';
 
 /**
  * Fictional demo data (RULES: never real people). Members are flagged is_demo, which turns on
- * the DEMO DATA banner. No portal logins and no passwords are created. Safe to run repeatedly.
+ * the DEMO DATA banner. No portal logins and no usable passwords are created. Safe to run repeatedly.
  */
 const SEED_CTX: RequestContext = {
   actorUserId: null,
@@ -113,8 +115,12 @@ export async function seedDemo() {
   const today = gymToday();
   if (existing) {
     console.warn('Demo members already exist; member and plan demo skipped.');
-    // Databases seeded before Stage 4 still get the access demo.
-    await db.transaction((tx) => seedAccessDemo(tx, SEED_CTX, today));
+    // Databases seeded before Stages 4 to 6 still get the access, billing and schedule demos.
+    await db.transaction(async (tx) => {
+      await seedAccessDemo(tx, SEED_CTX, today);
+      await seedBillingDemo(tx, SEED_CTX, today);
+      await seedScheduleDemo(tx, SEED_CTX, today);
+    });
     return;
   }
 
@@ -173,6 +179,8 @@ export async function seedDemo() {
       seenPhones.set(phone, row!.id);
     }
     await seedAccessDemo(tx, SEED_CTX, today);
+    await seedBillingDemo(tx, SEED_CTX, today);
+    await seedScheduleDemo(tx, SEED_CTX, today);
   });
   console.warn(
     `Seeded ${PLANS.length} plans and ${MEMBERS.length} fictional demo members in "${databaseName(config.databaseUrl)}".`,

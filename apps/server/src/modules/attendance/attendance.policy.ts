@@ -1,11 +1,11 @@
 import { permissionScope, SCOPES } from '@gms/shared';
 import { forbidden } from '../../lib/errors';
+import { assertAssigned } from '../trainers/trainer-scope';
 
 /**
  * Object-level scope for `attendance:read` on staff routes (PLAN §5).
  * - Full-access roles see every record.
- * - Trainers see assigned members only. Assignments arrive in Stage 6, so until then a trainer
- *   is assigned to nobody: lists are empty and any single member is out of scope.
+ * - Trainers see members assigned to them only.
  * - Members read their own check-ins through /me/attendance.
  */
 export type AttendanceReadScope = { kind: 'all' } | { kind: 'assigned'; trainerUserId: string };
@@ -17,7 +17,7 @@ export function attendanceReadScope(auth: Express.AuthContext): AttendanceReadSc
   throw forbidden();
 }
 
-/** Stage 6 replaces this with a trainer_assignments lookup. */
-export function assertCanReadAttendanceOf(scope: AttendanceReadScope, _memberId: string) {
-  if (scope.kind === 'assigned') throw forbidden('This member is not assigned to you.');
+/** 403 unless the caller may see this member (a trainer: only while assigned). */
+export async function assertCanReadAttendanceOf(scope: AttendanceReadScope, memberId: string) {
+  if (scope.kind === 'assigned') await assertAssigned(scope.trainerUserId, memberId);
 }

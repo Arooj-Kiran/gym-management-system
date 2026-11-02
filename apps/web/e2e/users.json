@@ -39,6 +39,24 @@
     "lastName": "Siddiqui",
     "phone": "+923001110002"
   },
+  "classMember": {
+    "email": "e2e.classes@example.test",
+    "firstName": "Mahnoor",
+    "lastName": "Raza",
+    "phone": "+923001110003"
+  },
+  "workoutMember": {
+    "email": "e2e.workouts@example.test",
+    "firstName": "Faisal",
+    "lastName": "Mirza",
+    "phone": "+923001110004"
+  },
+  "notifyMember": {
+    "email": "e2e.notify@example.test",
+    "firstName": "Iqra",
+    "lastName": "Javed",
+    "phone": "+923001110005"
+  },
   "plan": {
     "name": "Standard Monthly",
     "priceMinor": 600000

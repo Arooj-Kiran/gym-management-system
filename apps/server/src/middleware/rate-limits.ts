@@ -5,6 +5,8 @@ import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
 export interface RateLimitOptions {
   loginMax: number;
   loginWindowMinutes: number;
+  /** Report and chart requests per signed-in user per minute (each runs several aggregates). */
+  reportsPerMinute: number;
 }
 
 const rejectWith429: Parameters<typeof rateLimit>[0] = {
@@ -56,6 +58,16 @@ export function createPasswordChangeLimiter({ loginMax, loginWindowMinutes }: Ra
     windowMs: loginWindowMinutes * 60_000,
     limit: loginMax * 2,
     skipSuccessfulRequests: true,
+    keyGenerator: (req) => `user:${req.auth?.user.id ?? ipKeyGenerator(req.ip ?? '')}`,
+  });
+}
+
+/** Reports and dashboard charts: per signed-in user, so one session cannot load the database. */
+export function createReportLimiter({ reportsPerMinute }: RateLimitOptions) {
+  return rateLimit({
+    ...rejectWith429,
+    windowMs: 60_000,
+    limit: reportsPerMinute,
     keyGenerator: (req) => `user:${req.auth?.user.id ?? ipKeyGenerator(req.ip ?? '')}`,
   });
 }

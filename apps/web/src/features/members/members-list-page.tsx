@@ -3,9 +3,11 @@ import {
   MEMBER_ACCOUNT_STATUSES,
   MEMBERSHIP_STATUS_LABELS,
   MEMBERSHIP_STATUSES,
+  MEMBER_PAYMENT_FILTERS,
   type MEMBER_SORT_FIELDS,
   type MemberAccountStatus,
   type MemberListQuery,
+  type MemberPaymentFilter,
   type MemberSummaryDto,
 } from '@gms/shared';
 import { ChevronRight, Contact, UserPlus } from 'lucide-react';
@@ -54,10 +56,19 @@ type MembershipFilter = (typeof MEMBERSHIP_FILTERS)[number];
 const isMembershipFilter = (value: string | null): value is MembershipFilter =>
   MEMBERSHIP_FILTERS.includes(value as MembershipFilter);
 
+const PAYMENT_FILTER_LABELS: Record<MemberPaymentFilter, string> = {
+  OUTSTANDING: 'Balance outstanding',
+  OVERDUE: 'Payment overdue',
+  CLEAR: 'Nothing owed',
+};
+const isPaymentFilter = (value: string | null): value is MemberPaymentFilter =>
+  MEMBER_PAYMENT_FILTERS.includes(value as MemberPaymentFilter);
+
 /** Filters live in the URL so the list can be bookmarked and survives a refresh. */
-function useMemberFilters() {
+function useMemberFilters(canReadPayments: boolean) {
   const [params, setParams] = useSearchParams();
   const status = params.get('status');
+  const payment = params.get('paymentStatus');
   const view = VIEWS.find((option) => option.value === params.get('view'))?.value ?? 'current';
   const access = params.get('access');
   const membership = params.get('membership');
@@ -73,6 +84,7 @@ function useMemberFilters() {
     accountStatus: isStatus(status) ? status : undefined,
     accessBlocked: access === 'blocked' ? 'true' : undefined,
     membershipStatus: isMembershipFilter(membership) ? membership : undefined,
+    paymentStatus: canReadPayments && isPaymentFilter(payment) ? payment : undefined,
     sort: sortField,
     order,
   };
@@ -145,13 +157,15 @@ function MemberRow({ member }: { member: MemberSummaryDto }) {
 export function MembersListPage() {
   const can = useCan();
   const canCreate = can('members:create');
-  const { query, sort, update, creating } = useMemberFilters();
+  const canReadPayments = can('payments:read');
+  const { query, sort, update, creating } = useMemberFilters(canReadPayments);
   const list = useMemberList(query);
   const filtered = Boolean(
     query.q ||
     query.accountStatus ||
     query.accessBlocked ||
     query.membershipStatus ||
+    query.paymentStatus ||
     query.view !== 'current',
   );
 
@@ -182,7 +196,12 @@ export function MembersListPage() {
               placeholder="Name, code, phone or email"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+          <div
+            className={cn(
+              'grid grid-cols-2 gap-3 sm:grid-cols-3',
+              canReadPayments ? 'xl:grid-cols-6' : 'xl:grid-cols-5',
+            )}
+          >
             <Select
               aria-label="Show"
               value={query.view}
@@ -229,6 +248,20 @@ export function MembersListPage() {
               <option value="">Any entry</option>
               <option value="blocked">Entry blocked</option>
             </Select>
+            {canReadPayments && (
+              <Select
+                aria-label="Filter by payments"
+                value={query.paymentStatus ?? ''}
+                onChange={(event) => update({ paymentStatus: event.target.value })}
+              >
+                <option value="">Any payments</option>
+                {MEMBER_PAYMENT_FILTERS.map((filter) => (
+                  <option key={filter} value={filter}>
+                    {PAYMENT_FILTER_LABELS[filter]}
+                  </option>
+                ))}
+              </Select>
+            )}
             <Select
               aria-label="Sort by"
               value={sort}
@@ -272,7 +305,14 @@ export function MembersListPage() {
                   variant="secondary"
                   size="sm"
                   onClick={() =>
-                    update({ q: null, status: null, access: null, membership: null, view: null })
+                    update({
+                      q: null,
+                      status: null,
+                      access: null,
+                      membership: null,
+                      paymentStatus: null,
+                      view: null,
+                    })
                   }
                 >
                   Clear filters

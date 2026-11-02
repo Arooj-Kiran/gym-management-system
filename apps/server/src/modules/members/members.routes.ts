@@ -7,8 +7,10 @@ import {
 import { authenticated } from '../../middleware/session';
 import { singleImage } from '../../middleware/upload';
 import * as attendance from '../attendance/attendance.routes';
+import * as billing from '../billing/billing.routes';
 import * as biometrics from '../biometrics/biometrics.routes';
 import * as membershipsController from '../memberships/memberships.controller';
+import * as workouts from '../workouts/workouts.routes';
 import * as controller from './members.controller';
 
 /** Staff routes. Members read themselves through /me and get 403 here (PLAN §4.10). */
@@ -54,6 +56,8 @@ export function membersRoutes() {
     requirePermission('access:restrict'),
     controller.unblockAccess,
   );
+  router.get('/:id/invoices', requirePermission('payments:read'), billing.invoicesForMember);
+  router.get('/:id/payments', requirePermission('payments:read'), billing.paymentsForMember);
   router.get('/:id/attendance', requirePermission('attendance:read'), attendance.listForMember);
   router.get(
     '/:id/access-attempts',
@@ -79,6 +83,12 @@ export function membersRoutes() {
     '/:id/biometric/enrollments',
     requirePermission('biometrics:manage'),
     biometrics.enroll,
+  );
+  router.get('/:id/progress', requirePermission('progress:read'), workouts.progressForMember);
+  router.post(
+    '/:id/progress',
+    requirePermission('progress:record'),
+    workouts.recordProgressForMember,
   );
   return router;
 }

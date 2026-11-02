@@ -31,9 +31,11 @@ function currentOrderSql(alias: string, today: string): SQL {
 
 /**
  * Always table-qualified: Drizzle drops the table name in single-table selects, and an unqualified
- * "id" inside the subquery would bind to the memberships row instead.
+ * "id" inside the subquery would bind to the memberships row instead. Use it for every outer
+ * column referenced from inside a correlated subquery.
  */
-const qualified = (column: Column) => sql.raw(`"${getTableName(column.table)}"."${column.name}"`);
+export const qualified = (column: Column) =>
+  sql.raw(`"${getTableName(column.table)}"."${column.name}"`);
 
 /** Scalar subquery: `selection` (written against alias "cm") of the member's current membership. */
 export function currentMembershipSql<T>(

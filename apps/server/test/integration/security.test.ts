@@ -65,6 +65,30 @@ describe('HTTP hardening', () => {
     expect(res.headers['x-content-type-options']).toBe('nosniff');
     expect(res.headers['content-security-policy']).toBeTruthy();
     expect(res.headers['x-frame-options']).toBeTruthy();
+    expect(res.headers['strict-transport-security']).toMatch(/max-age=\d+/);
+    expect(res.headers['referrer-policy']).toBe('no-referrer');
+  });
+
+  it('tells browsers and proxies never to store API responses, errors included', async () => {
+    const { agent } = await signIn(app, await createUser());
+    const responses = {
+      'signed in': await agent.get('/api/v1/auth/me'),
+      list: await agent.get('/api/v1/members'),
+      'not found': await agent.get('/api/v1/does-not-exist'),
+      'signed out (401)': await request(app).get('/api/v1/members'),
+    };
+    for (const [label, res] of Object.entries(responses)) {
+      expect(res.headers['cache-control'], label).toBe('no-store');
+    }
+  });
+
+  it('refuses a body over 100 KB without parsing it', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/login')
+      .set('Content-Type', 'application/json')
+      .send(JSON.stringify({ email: 'a@example.test', password: 'x'.repeat(110_000) }));
+    expect(res.status).toBe(413);
+    expect(res.body.error.code).toBe('PAYLOAD_TOO_LARGE');
   });
 
   it('allows CORS only for the configured web origin', async () => {

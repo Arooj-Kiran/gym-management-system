@@ -21,6 +21,15 @@ export default defineConfig({
       ACCESS_DUPLICATE_SCAN_WINDOW_SECONDS: '60',
       ACCESS_DB_TIMEOUT_MS: '2000',
       ACCESS_SCAN_RATE_LIMIT_PER_MINUTE: '60',
+      // No notification channel is ever configured in tests, so nothing can reach a provider.
+      SMTP_HOST: '',
+      SMTP_USER: '',
+      SMTP_PASSWORD: '',
+      SMTP_FROM: '',
+      TWILIO_ACCOUNT_SID: '',
+      TWILIO_AUTH_TOKEN: '',
+      TWILIO_SMS_FROM: '',
+      TWILIO_WHATSAPP_FROM: '',
     },
     // Integration tests share one test database, so files run one at a time.
     fileParallelism: false,

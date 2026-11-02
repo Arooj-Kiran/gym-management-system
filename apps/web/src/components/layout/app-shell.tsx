@@ -1,9 +1,10 @@
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Outlet, useLocation } from 'react-router';
+import { Outlet, useLocation, useNavigation } from 'react-router';
 import { useSession } from '../../lib/auth';
 import { isStaffRole } from '@gms/shared';
+import { NotificationBell } from '../../features/notifications/notification-bell';
 import { Avatar } from '../ui/avatar';
 import { DemoDataBanner } from './demo-data-banner';
 import { BrandMark, SidebarContent } from './sidebar';
@@ -16,6 +17,8 @@ import { UserMenu } from './user-menu';
 export function AppShell() {
   const session = useSession();
   const location = useLocation();
+  // A screen's code loads on its first visit; the current page stays up meanwhile.
+  const loadingPage = useNavigation().state === 'loading';
   // The drawer remembers the page it was opened on, so any navigation closes it.
   const [openedOn, setOpenedOn] = useState<string | null>(null);
   const drawerOpen = openedOn === location.pathname;
@@ -31,6 +34,15 @@ export function AppShell() {
 
   return (
     <div className="min-h-dvh bg-bg">
+      {loadingPage && (
+        <div
+          role="progressbar"
+          aria-label="Loading page"
+          className="fixed inset-x-0 top-0 z-[70] h-0.5 overflow-hidden bg-primary-subtle"
+        >
+          <div className="h-full w-1/3 animate-page-progress bg-primary motion-reduce:w-full motion-reduce:animate-none" />
+        </div>
+      )}
       <a
         href="#main"
         className="sr-only z-[60] rounded-md bg-primary px-3 py-2 text-sm font-medium text-on-primary focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
@@ -73,6 +85,7 @@ export function AppShell() {
           <BrandMark gymName={session.gym.name} />
         </div>
 
+        <NotificationBell />
         <UserMenu
           trigger={
             <button

@@ -1,6 +1,6 @@
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { cn } from '../../lib/cn';
 
 interface DialogProps {
@@ -17,6 +17,17 @@ interface DialogProps {
 
 const WIDTHS = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl' };
 
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** The element that had focus when the dialog opened, then its ancestors, nearest first. */
+function focusPath(): Element[] {
+  const path: Element[] = [];
+  for (let node = document.activeElement; node && node !== document.body; node = node.parentElement)
+    path.push(node);
+  return path;
+}
+
 export function Dialog({
   open,
   onOpenChange,
@@ -27,6 +38,7 @@ export function Dialog({
   size = 'md',
   busy,
 }: DialogProps) {
+  const opener = useRef<Element[]>([]);
   return (
     <RadixDialog.Root open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
       <RadixDialog.Portal>
@@ -38,6 +50,25 @@ export function Dialog({
             WIDTHS[size],
           )}
           {...(description ? {} : { 'aria-describedby': undefined })}
+          onOpenAutoFocus={() => {
+            opener.current = focusPath();
+          }}
+          onCloseAutoFocus={(event) => {
+            // Our dialogs open from state, not a Radix trigger, so Radix has nothing to return
+            // focus to. Return it to the opener; if the action removed that (a paid invoice
+            // loses its "Pay" button), to the nearest control still there, never the page body.
+            event.preventDefault();
+            const [trigger, ...ancestors] = opener.current;
+            opener.current = [];
+            if (trigger instanceof HTMLElement && trigger.isConnected) {
+              trigger.focus();
+              return;
+            }
+            const near = ancestors.find((element) => element.isConnected);
+            const next =
+              near?.querySelector<HTMLElement>(FOCUSABLE) ?? document.getElementById('main');
+            next?.focus();
+          }}
         >
           <div className="flex items-start gap-4 border-b border-border px-5 py-4 sm:px-6">
             <div className="min-w-0 flex-1">

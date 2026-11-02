@@ -8,6 +8,7 @@ import { EmptyState, ErrorState, ListSkeleton, Skeleton } from '../../components
 import { useSession } from '../../lib/auth';
 import { cn } from '../../lib/cn';
 import { formatDate, formatMoney, gymTodayIso } from '../../lib/format';
+import { isOpenInvoice } from '../billing/billing-format';
 import { membershipPeriod, membershipTiming } from '../memberships/membership-format';
 import { MembershipStatusBadge } from '../memberships/membership-status-badge';
 import { planDays, planHours } from '../plans/plan-format';
@@ -62,6 +63,33 @@ function Callout({
   );
 }
 
+/** C1: an unpaid balance on the member's own period, and where to pay it. */
+function BalanceCallout({ membership }: { membership: MyMembershipDto }) {
+  const { gym } = useSession();
+  const invoice = membership.invoice;
+  if (!invoice || !isOpenInvoice(invoice.status)) return null;
+  const overdue = invoice.status === 'OVERDUE';
+  return (
+    <div
+      className={cn(
+        'flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md px-3 py-2.5 text-13',
+        overdue ? 'bg-danger-subtle text-danger-text' : 'bg-warning-subtle text-warning-text',
+      )}
+    >
+      <p className="min-w-0 flex-1">
+        <span className="font-semibold tabular-nums">
+          {formatMoney(invoice.balanceMinor, gym.currencyCode)}
+        </span>{' '}
+        {overdue ? 'is overdue' : 'is outstanding'} for {membership.planName} (due{' '}
+        {formatDate(invoice.dueDate)}). Please pay at the front desk.
+      </p>
+      <ButtonLink to="/portal/payments" variant="secondary" size="sm">
+        My payments
+      </ButtonLink>
+    </div>
+  );
+}
+
 function CurrentMembership({ overview }: { overview: MyMembershipOverview }) {
   const { gym } = useSession();
   const today = gymTodayIso();
@@ -87,6 +115,11 @@ function CurrentMembership({ overview }: { overview: MyMembershipOverview }) {
           <div className="mt-5">
             <AccessFacts membership={current} />
           </div>
+          {current.invoice && isOpenInvoice(current.invoice.status) && (
+            <div className="mt-5">
+              <BalanceCallout membership={current} />
+            </div>
+          )}
           {(message || overview.expiringSoon) && (
             <div className="mt-5">
               {overview.expiringSoon ? (
@@ -138,6 +171,11 @@ function CurrentMembership({ overview }: { overview: MyMembershipOverview }) {
           <span className="font-medium text-fg">Up next: {overview.next.planName}</span>
           <span className="text-fg-secondary tabular-nums">{membershipPeriod(overview.next)}</span>
           <MembershipStatusBadge status={overview.next.effectiveStatus} />
+          {overview.next.invoice && isOpenInvoice(overview.next.invoice.status) && (
+            <span className="text-warning-text tabular-nums">
+              {formatMoney(overview.next.invoice.balanceMinor, gym.currencyCode)} to pay
+            </span>
+          )}
         </div>
       )}
     </Card>

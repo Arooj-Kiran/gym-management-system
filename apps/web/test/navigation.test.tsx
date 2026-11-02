@@ -5,34 +5,92 @@ import { SidebarContent } from '../src/components/layout/sidebar';
 import { fakeMe, renderWithProviders } from './render';
 
 const ENTRANCE = ['Check-in desk', 'Attendance', 'Access log'];
+const BILLING = ['Invoices', 'Payments'];
+const TRAINING = ['Classes', 'Appointments', 'Trainers', 'Shifts'];
+// Exercise library and workout plans sit between Trainers and Shifts for roles that may read them.
+const TRAINING_WITH_WORKOUTS = [
+  'Classes',
+  'Appointments',
+  'Trainers',
+  'Exercises',
+  'Workout plans',
+  'Assigned workouts',
+  'Shifts',
+];
 
 const NAV: Record<Role, string[]> = {
   ADMIN: [
     'Dashboard',
+    'Reports',
     'Members',
     'Memberships',
     'Plans',
+    ...BILLING,
     ...ENTRANCE,
+    ...TRAINING_WITH_WORKOUTS,
     'Staff',
     'Scanners',
+    'Equipment',
     'Audit log',
     'Settings',
+    'Notification channels',
     'My account',
   ],
   MANAGER: [
     'Dashboard',
+    'Reports',
     'Members',
     'Memberships',
     'Plans',
+    ...BILLING,
     ...ENTRANCE,
+    ...TRAINING_WITH_WORKOUTS,
     'Staff',
+    'Equipment',
     'Settings',
+    'Notification channels',
     'My account',
   ],
-  RECEPTIONIST: ['Dashboard', 'Members', 'Memberships', 'Plans', ...ENTRANCE, 'My account'],
-  // Trainers only see assigned members (Stage 6), so the whole-gym lists stay hidden.
-  TRAINER: ['Dashboard', 'My account'],
-  MEMBER: ['My profile', 'My membership', 'My attendance', 'Plans', 'My account'],
+  // Front desk can look up equipment and run its two reports; no workout or settings access.
+  RECEPTIONIST: [
+    'Dashboard',
+    'Reports',
+    'Members',
+    'Memberships',
+    'Plans',
+    ...BILLING,
+    ...ENTRANCE,
+    ...TRAINING,
+    'Equipment',
+    'My account',
+  ],
+  // Trainers see their own training screens and assigned members only; no payment access at all.
+  TRAINER: [
+    'Dashboard',
+    'Classes',
+    'Appointments',
+    'Trainers',
+    'My members',
+    'Exercises',
+    'Workout plans',
+    'Assigned workouts',
+    'Shifts',
+    'Equipment',
+    'My account',
+  ],
+  MEMBER: [
+    'My profile',
+    'My membership',
+    'My attendance',
+    'My payments',
+    'Classes',
+    'My schedule',
+    'Trainers',
+    'My workouts',
+    'My progress',
+    'Plans',
+    'My account',
+  ],
 };
 
 describe('role-aware navigation', () => {

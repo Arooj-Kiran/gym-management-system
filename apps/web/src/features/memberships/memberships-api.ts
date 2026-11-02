@@ -49,7 +49,8 @@ export function useMemberMembershipEvents(memberId: string) {
 
 /**
  * A membership change touches the member's current status everywhere: their membership tab and
- * timeline, both lists and the dashboard counts.
+ * timeline, both lists and the dashboard counts. Assigning and renewing raise an invoice, and
+ * a cancellation can void one, so the billing lists are refreshed too.
  */
 function useMembershipMutation<TInput>(request: (input: TInput) => Promise<MembershipDto>) {
   const queryClient = useQueryClient();
@@ -57,6 +58,7 @@ function useMembershipMutation<TInput>(request: (input: TInput) => Promise<Membe
     Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.memberships.all }),
       queryClient.invalidateQueries({ queryKey: queryKeys.members.all }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.billing.all }),
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
     ]);
   return useMutation({

@@ -12,23 +12,25 @@ import {
   type MembershipDto,
   type PlanDto,
 } from '@gms/shared';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useForm, useWatch, type UseFormRegisterReturn } from 'react-hook-form';
 import { toast } from 'sonner';
 import type { z } from 'zod';
 import { errorMessage } from '../../api/client';
 import { Button } from '../../components/ui/button';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { Dialog } from '../../components/ui/dialog';
 import { FormField, Input, Select, Textarea } from '../../components/ui/form-field';
 import { Skeleton } from '../../components/ui/states';
-import { fullName, useSession } from '../../lib/auth';
+import { fullName, useCan, useSession } from '../../lib/auth';
 import { formatDate, formatMoney, gymTodayIso } from '../../lib/format';
 import { applyServerErrors } from '../../lib/forms';
 import { planDuration } from '../plans/plan-format';
 import { usePlanList } from '../plans/plans-api';
-import { gymDateOf, plural } from './membership-format';
+import { gymDateOf, membershipPeriod, plural } from './membership-format';
 import {
   useAssignMembership,
+  useCancelMembership,
   useExtendMembership,
   useReactivateMembership,
   useRenewMembership,
@@ -521,5 +523,93 @@ export function ReactivateMembershipDialog({
         <ReasonField error={errors.reason?.message} inputProps={form.register('reason')} />
       </form>
     </Dialog>
+  );
+}
+
+// --- Cancel ---------------------------------------------------------------------------------
+
+/**
+ * Cancelling also offers to void the membership's unpaid invoice, ticked by default: a member
+ * whose membership is cancelled usually owes nothing more. Staff untick it to keep charging for
+ * time already used. An invoice that holds money stays; its payments must be refunded first.
+ */
+export function CancelMembershipDialog({
+  membership,
+  memberName,
+  open,
+  onOpenChange,
+}: DialogProps & { membership: MembershipDto; memberName: string }) {
+  const can = useCan();
+  const { gym } = useSession();
+  const cancel = useCancelMembership();
+  const [voidInvoice, setVoidInvoice] = useState(true);
+  const invoice = membership.invoice?.status === 'VOID' ? null : membership.invoice;
+  const heldMinor = invoice ? invoice.amountDueMinor - invoice.balanceMinor : 0;
+  const offerVoid = invoice !== null && heldMinor === 0 && can('payments:void');
+
+  const close = (next: boolean) => {
+    if (!next) setVoidInvoice(true);
+    onOpenChange(next);
+  };
+
+  return (
+    <ConfirmDialog
+      open={open}
+      onOpenChange={close}
+      title={`Cancel ${memberName}'s membership?`}
+      description={`${membership.planName} (${membershipPeriod(membership)}) stops at once and cannot be restarted. Entry is refused from now on; its history is kept.`}
+      confirmLabel="Cancel membership"
+      tone="danger"
+      reason="required"
+      loading={cancel.isPending}
+      onConfirm={(reason) =>
+        cancel.mutate(
+          {
+            id: membership.id,
+            reason: reason ?? '',
+            voidUnpaidInvoice: offerVoid && voidInvoice,
+            version: membership.version,
+          },
+          {
+            onSuccess: (updated) => {
+              toast.success(`Membership cancelled for ${memberName}`, {
+                description:
+                  invoice && updated.invoice?.status === 'VOID'
+                    ? `Invoice ${invoice.invoiceNumber} was voided.`
+                    : undefined,
+              });
+              close(false);
+            },
+            onError: (error) => toast.error(errorMessage(error)),
+          },
+        )
+      }
+    >
+      {offerVoid && invoice && (
+        <label className="flex cursor-pointer items-start gap-2.5 text-sm text-fg">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 cursor-pointer accent-primary"
+            checked={voidInvoice}
+            onChange={(event) => setVoidInvoice(event.target.checked)}
+          />
+          <span>
+            Also void its unpaid invoice {invoice.invoiceNumber} (
+            {formatMoney(invoice.amountDueMinor, gym.currencyCode)})
+            <span className="block text-13 text-fg-muted">
+              {voidInvoice
+                ? `${memberName} will no longer owe it.`
+                : 'The invoice stays open and is still owed.'}
+            </span>
+          </span>
+        </label>
+      )}
+      {invoice && heldMinor > 0 && (
+        <p className="rounded-md border border-border bg-surface-muted/60 px-3.5 py-3 text-13 text-fg-secondary">
+          Invoice {invoice.invoiceNumber} has {formatMoney(heldMinor, gym.currencyCode)} paid on it,
+          so it stays as it is. To give the money back, refund the payment from the invoice.
+        </p>
+      )}
+    </ConfirmDialog>
   );
 }

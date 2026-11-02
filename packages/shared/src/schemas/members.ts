@@ -118,6 +118,10 @@ export type CheckDuplicateQuery = z.input<typeof checkDuplicateQuerySchema>;
 export const MEMBER_SORT_FIELDS = ['name', 'memberCode', 'registrationDate', 'createdAt'] as const;
 export const MEMBER_LIST_VIEWS = ['current', 'archived', 'all'] as const;
 
+/** OUTSTANDING = any open invoice; OVERDUE = an open invoice past its due date; CLEAR = none. */
+export const MEMBER_PAYMENT_FILTERS = ['OUTSTANDING', 'OVERDUE', 'CLEAR'] as const;
+export type MemberPaymentFilter = (typeof MEMBER_PAYMENT_FILTERS)[number];
+
 export const memberListQuerySchema = z.strictObject({
   ...listQueryBase,
   sort: z.enum(MEMBER_SORT_FIELDS).default('createdAt'),
@@ -128,6 +132,8 @@ export const memberListQuerySchema = z.strictObject({
   registeredTo: optionalIsoDateSchema,
   /** Effective status of the member's current membership; NONE = never had one. */
   membershipStatus: z.enum([...MEMBERSHIP_STATUSES, 'NONE']).optional(),
+  /** Needs payments:read (the server ignores it for roles without). */
+  paymentStatus: z.enum(MEMBER_PAYMENT_FILTERS).optional(),
 });
 export type MemberListQuery = z.input<typeof memberListQuerySchema>;
 

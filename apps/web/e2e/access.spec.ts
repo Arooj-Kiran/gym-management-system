@@ -7,6 +7,7 @@ import {
   PLAN,
   signIn,
   signInAs,
+  VIEWPORTS,
 } from './helpers';
 
 const NAME = `${ACCESS_MEMBER.firstName} ${ACCESS_MEMBER.lastName}`;
@@ -38,6 +39,8 @@ async function scan(page: Page) {
 }
 
 test('a cancelled membership is denied at the very next scan', async ({ page }) => {
+  // Four sign-ins and five axe scans in one flow: more than the default 30 s.
+  test.setTimeout(90_000);
   // Admin adds a simulated scanner; its key is shown once.
   await signInAs(page, 'ADMIN');
   await page.goto('/devices');
@@ -49,7 +52,8 @@ test('a cancelled membership is denied at the very next scan', async ({ page }) 
   await expect(form.getByLabel('Type')).toHaveValue('SIMULATED');
   await form.getByRole('button', { name: 'Add scanner' }).click();
   const keyDialog = page.getByRole('dialog', { name: `${SCANNER} added` });
-  await expect(keyDialog.getByLabel('Device key')).not.toHaveValue('');
+  // By role: the "Copy device key" button carries the same words in its label.
+  await expect(keyDialog.getByRole('textbox', { name: 'Device key' })).not.toHaveValue('');
   await keyDialog.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByRole('list', { name: 'Scanners' }).getByText(SCANNER)).toBeVisible();
   await expectNoAxeViolations(page);
@@ -141,7 +145,9 @@ test('a cancelled membership is denied at the very next scan', async ({ page }) 
   await expect(visits.first()).toContainText('Test scanner');
 });
 
-test('the full-screen kiosk fits phones and desktops and is accessible', async ({ page }) => {
+test('the full-screen kiosk fits phones, tablets and desktops and is accessible', async ({
+  page,
+}) => {
   await signInAs(page, 'RECEPTIONIST');
   await page.goto('/check-in');
   await page.getByRole('link', { name: 'Full-screen kiosk' }).click();
@@ -150,11 +156,8 @@ test('the full-screen kiosk fits phones and desktops and is accessible', async (
   await expect(kiosk.getByText('Place your thumb on the scanner')).toBeVisible();
   await expect(kiosk.getByRole('note')).toHaveText(BANNER);
 
-  for (const size of [
-    { width: 360, height: 800 },
-    { width: 1280, height: 800 },
-  ]) {
-    await page.setViewportSize(size);
+  for (const { width, height } of VIEWPORTS) {
+    await page.setViewportSize({ width, height });
     await expectNoHorizontalOverflow(page);
     await expectNoAxeViolations(page);
   }

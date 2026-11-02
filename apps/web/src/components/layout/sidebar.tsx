@@ -2,6 +2,7 @@ import { isStaffRole, permissionScope, ROLE_LABELS } from '@gms/shared';
 import { NavLink } from 'react-router';
 import { fullName, useCan, useSession } from '../../lib/auth';
 import { cn } from '../../lib/cn';
+import { NotificationBell } from '../../features/notifications/notification-bell';
 import { Avatar } from '../ui/avatar';
 import { NAV_SECTIONS, type NavItem } from './nav-items';
 import { UserMenu } from './user-menu';
@@ -12,6 +13,7 @@ function useVisibleNav() {
   const visible = (item: NavItem) =>
     (!item.staffOnly || isStaffRole(user.role)) &&
     (!item.memberOnly || user.role === 'MEMBER') &&
+    (!item.roles || item.roles.includes(user.role)) &&
     (!item.permission || can(item.permission)) &&
     (!item.fullScope || !item.permission || permissionScope(user.role, item.permission) === 'ALL');
   return NAV_SECTIONS.map((section) => ({
@@ -54,11 +56,15 @@ export function SidebarContent({
     <div className="flex h-full flex-col bg-sidebar text-sidebar-fg">
       <div
         className={cn(
-          'flex h-16 shrink-0 items-center border-b border-sidebar-border pl-5',
-          inDrawer ? 'pr-14' : 'pr-5',
+          'flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border pl-5',
+          inDrawer ? 'pr-14' : 'pr-3',
         )}
       >
-        <BrandMark gymName={session.gym.name} />
+        <div className="min-w-0 flex-1">
+          <BrandMark gymName={session.gym.name} />
+        </div>
+        {/* The mobile top bar has its own bell, so the drawer does not repeat it. */}
+        {!inDrawer && <NotificationBell />}
       </div>
 
       <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 py-5">

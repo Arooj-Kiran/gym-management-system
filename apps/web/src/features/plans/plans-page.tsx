@@ -126,7 +126,7 @@ function PlanRow({
         <span className="block text-fg-muted">{planHours(plan)}</span>
       </p>
       {canManage ? (
-        <div className="col-span-2 flex gap-2 lg:order-5 lg:col-span-1 lg:justify-end">
+        <div className="col-span-2 flex gap-2 lg:order-5 lg:col-span-1 lg:w-44 lg:justify-end">
           <Button variant="secondary" size="sm" icon={<Pencil aria-hidden />} onClick={onEdit}>
             Edit<span className="sr-only"> {plan.name}</span>
           </Button>
@@ -243,7 +243,8 @@ export function PlansPage() {
           <span>Duration</span>
           <span>Access</span>
           <span className="text-right">Price</span>
-          <span className={canManage ? 'w-[168px]' : undefined} />
+          {/* As wide as the row buttons ("Edit" and "Archive"), so the columns line up. */}
+          <span className={canManage ? 'w-44' : undefined} />
         </div>
 
         {list.isPending ? (

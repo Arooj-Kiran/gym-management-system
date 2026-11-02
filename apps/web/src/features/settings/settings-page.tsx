@@ -7,17 +7,20 @@ import {
   type UpdateSettingsInput,
 } from '@gms/shared';
 import { Lock } from 'lucide-react';
-import { useEffect, type ComponentProps, type ReactNode } from 'react';
+import { useEffect, useState, type ComponentProps, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import type { z } from 'zod';
 import { errorMessage } from '../../api/client';
+import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card, CardHeader } from '../../components/ui/card';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { FormField, Input, Textarea } from '../../components/ui/form-field';
 import { PageHeader } from '../../components/ui/page-header';
 import { ErrorState, Skeleton } from '../../components/ui/states';
 import { useCan } from '../../lib/auth';
+import { cn } from '../../lib/cn';
 import { formatDateTime } from '../../lib/format';
 import { applyServerErrors } from '../../lib/forms';
 import { useSettings, useUpdateSettings } from './settings-api';
@@ -219,6 +222,96 @@ function SettingsForm({ settings, editable }: { settings: GymSettingsDto; editab
   );
 }
 
+/**
+ * C1 "require full payment before activation". Saved on its own, after a confirmation, because it
+ * changes what the front desk can do the moment it is switched (and the change is audited).
+ */
+function PaymentRuleCard({ settings, editable }: { settings: GymSettingsDto; editable: boolean }) {
+  const update = useUpdateSettings();
+  const [confirming, setConfirming] = useState(false);
+  const on = settings.requireFullPaymentBeforeActivation;
+  const next = !on;
+
+  const save = (reason: string | undefined) =>
+    update.mutate(
+      { requireFullPaymentBeforeActivation: next, ...(reason ? { reason } : {}) },
+      {
+        onSuccess: () => {
+          setConfirming(false);
+          toast.success(
+            next
+              ? 'Full payment is now required to activate'
+              : 'Activation no longer waits for payment',
+          );
+        },
+        onError: (error) => toast.error(errorMessage(error)),
+      },
+    );
+
+  return (
+    <Card>
+      <CardHeader
+        title="Payment rule"
+        description="Saved as soon as you confirm. Every change is recorded in the audit log."
+      />
+      <div className="flex flex-col gap-4 px-4 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-5">
+        <div className="max-w-prose">
+          <p id="c1-label" className="text-sm font-medium text-fg">
+            Require full payment before activation
+          </p>
+          <p id="c1-hint" className="mt-1 text-13 text-fg-secondary">
+            When on, a new or renewed membership stays pending until its invoice is paid in full.
+            Off by default: memberships activate straight away and any balance is collected later.
+            Free plans are never held back.
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-3">
+          <Badge tone={on ? 'success' : 'neutral'} dot>
+            {on ? 'On' : 'Off'}
+          </Badge>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={on}
+            aria-labelledby="c1-label"
+            aria-describedby="c1-hint"
+            disabled={!editable || update.isPending}
+            onClick={() => setConfirming(true)}
+            className={cn(
+              'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border transition-colors duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none',
+              on ? 'border-primary bg-primary' : 'border-border-strong bg-surface-muted',
+            )}
+          >
+            <span
+              aria-hidden
+              className={cn(
+                'inline-block size-4.5 rounded-full bg-white shadow-xs transition-transform duration-150 ease-out motion-reduce:transition-none',
+                on ? 'translate-x-[22px]' : 'translate-x-[3px]',
+              )}
+            />
+          </button>
+        </div>
+      </div>
+      {editable && (
+        <ConfirmDialog
+          open={confirming}
+          onOpenChange={setConfirming}
+          title={next ? 'Require full payment?' : 'Stop requiring full payment?'}
+          description={
+            next
+              ? 'From now on, staff can only activate a membership once its invoice is fully paid. Memberships that are already active are not changed.'
+              : 'Staff will be able to activate memberships that still have an unpaid balance. The balance stays on the member’s account.'
+          }
+          confirmLabel={next ? 'Turn on' : 'Turn off'}
+          reason="optional"
+          loading={update.isPending}
+          onConfirm={save}
+        />
+      )}
+    </Card>
+  );
+}
+
 function SettingsSkeleton() {
   return (
     <div role="status" aria-label="Loading settings" className="flex flex-col gap-6">
@@ -261,7 +354,10 @@ export function SettingsPage() {
           <ErrorState error={settings.error} onRetry={() => settings.refetch()} />
         </Card>
       ) : (
-        <SettingsForm settings={settings.data} editable={editable} />
+        <div className="flex flex-col gap-6">
+          <PaymentRuleCard settings={settings.data} editable={editable} />
+          <SettingsForm settings={settings.data} editable={editable} />
+        </div>
       )}
     </>
   );

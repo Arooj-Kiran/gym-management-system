@@ -41,6 +41,14 @@ test('navigation and routes follow the role', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     'You do not have access to this page',
   );
+
+  // A trainer's own members page is for trainers only; the desk uses Trainers instead.
+  await expect(nav.getByRole('link', { name: 'My members' })).toHaveCount(0);
+  await expect(nav.getByRole('link', { name: 'Trainers' })).toBeVisible();
+  await page.goto('/my-members');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+    'You do not have access to this page',
+  );
 });
 
 test('manager can view settings but not change them', async ({ page }) => {

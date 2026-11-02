@@ -38,14 +38,14 @@ export function attendanceRoutes(settings: AccessSettings) {
   router.get('/', requirePermission('attendance:read'), async (req, res) => {
     const query = parseInput(attendanceListQuerySchema, req.query);
     const scope = scopeOf(req);
-    if (query.memberId) assertCanReadAttendanceOf(scope, query.memberId);
+    if (query.memberId) await assertCanReadAttendanceOf(scope, query.memberId);
     res.json(await attendanceService.listAttendance(query, scope));
   });
 
   router.get('/today', requirePermission('attendance:read'), async (req, res) => {
     const query = parseInput(attendanceListQuerySchema, req.query);
     const scope = scopeOf(req);
-    if (query.memberId) assertCanReadAttendanceOf(scope, query.memberId);
+    if (query.memberId) await assertCanReadAttendanceOf(scope, query.memberId);
     res.json(await attendanceService.listToday(query, scope));
   });
 
@@ -62,7 +62,7 @@ export function attendanceRoutes(settings: AccessSettings) {
   router.get('/:id/corrections', requirePermission('attendance:read'), async (req, res) => {
     const id = idOf(req);
     // 404 for an unknown record, 403 when its member is out of scope.
-    assertCanReadAttendanceOf(scopeOf(req), await attendanceService.attendanceMemberId(id));
+    await assertCanReadAttendanceOf(scopeOf(req), await attendanceService.attendanceMemberId(id));
     res.json({ data: await attendanceService.listCorrections(id) });
   });
 
@@ -73,7 +73,7 @@ export function attendanceRoutes(settings: AccessSettings) {
 export async function listForMember(req: Request, res: Response) {
   const memberId = idOf(req);
   const scope = scopeOf(req);
-  assertCanReadAttendanceOf(scope, memberId);
+  await assertCanReadAttendanceOf(scope, memberId);
   const query = parseInput(attendanceListQuerySchema, req.query);
   res.json(await attendanceService.listAttendance(query, scope, { memberId }));
 }
@@ -81,7 +81,7 @@ export async function listForMember(req: Request, res: Response) {
 /** GET /members/:id/access-attempts */
 export async function attemptsForMember(req: Request, res: Response) {
   const memberId = idOf(req);
-  assertCanReadAttendanceOf(scopeOf(req), memberId);
+  await assertCanReadAttendanceOf(scopeOf(req), memberId);
   const query = parseInput(accessAttemptListQuerySchema, req.query);
   res.json(await listAttempts(query, { memberId }));
 }

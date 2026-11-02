@@ -1,4 +1,4 @@
-import { isStaffRole, permissionScope, type Permission } from '@gms/shared';
+import { isStaffRole, permissionScope, type Permission, type Role } from '@gms/shared';
 import type { ReactNode } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router';
 import { ErrorState } from '../components/ui/states';
@@ -63,6 +63,12 @@ export function RequirePermission({
     can(permission) &&
     (!fullScope || (me.data && permissionScope(me.data.user.role, permission) === 'ALL'));
   return allowed ? <Outlet /> : <ForbiddenPage />;
+}
+
+/** Screens that only make sense for one kind of user (e.g. a trainer's own members). */
+export function RequireRole({ roles }: { roles: Role[] }) {
+  const me = useMe();
+  return me.data && roles.includes(me.data.user.role) ? <Outlet /> : <ForbiddenPage />;
 }
 
 export function RequireStaff() {

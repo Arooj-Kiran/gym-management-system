@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { MEMBERSHIP_STATUSES, type MembershipEventType, type MembershipStatus } from '../enums';
 import { MEMBERSHIP_LIMITS } from '../memberships';
+import type { MembershipInvoiceBrief } from './billing';
 import { listQueryBase, optionalIsoDateSchema, reasonSchema, requiredReasonSchema } from './common';
 
 export const membershipStatusSchema = z.enum(MEMBERSHIP_STATUSES, { error: 'Choose a status' });
@@ -59,6 +60,11 @@ export type ReactivateMembershipInput = z.input<typeof reactivateMembershipSchem
 
 export const cancelMembershipSchema = z.strictObject({
   reason: requiredReasonSchema,
+  /**
+   * Also void this membership's invoice. Needs `payments:void`. An invoice that still holds
+   * money is left open (refund first, as with any void); the cancellation goes ahead anyway.
+   */
+  voidUnpaidInvoice: z.boolean().default(false),
   ...versionField,
 });
 export type CancelMembershipInput = z.input<typeof cancelMembershipSchema>;
@@ -123,6 +129,14 @@ export interface MembershipDto extends MembershipBrief {
   createdAt: string;
   updatedAt: string;
   member: MembershipMemberRef;
+  /** The invoice raised for this period; null for a free plan (nothing to pay). */
+  invoice: MembershipInvoiceBrief | null;
+}
+
+/** Trainer view (§5 "status and dates only"): no price, invoice, notes or reasons. */
+export interface TrainerMembershipDto extends MembershipBrief {
+  memberId: string;
+  member: MembershipMemberRef;
 }
 
 export interface MembershipEventDto {
@@ -152,6 +166,7 @@ export interface MyMembershipDto {
   accessDays: number[] | null;
   accessStartTime: string | null;
   accessEndTime: string | null;
+  invoice: MembershipInvoiceBrief | null;
 }
 
 export interface MyMembershipOverview {

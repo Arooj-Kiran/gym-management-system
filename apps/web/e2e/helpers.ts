@@ -10,6 +10,12 @@ export const FORCED_CHANGE = fixtures.forcedChange;
 export const MEMBER = fixtures.member;
 /** A member with a portal login used only by the entrance (access) flow. */
 export const ACCESS_MEMBER = fixtures.accessMember;
+/** A member with an active membership from the start, used only by the class-booking flow. */
+export const CLASS_MEMBER = fixtures.classMember;
+/** A member assigned to the E2E trainer, used only by the workout plan flow. */
+export const WORKOUT_MEMBER = fixtures.workoutMember;
+/** An active member whose membership is suspended by the notification flow. */
+export const NOTIFY_MEMBER = fixtures.notifyMember;
 export const PLAN = fixtures.plan;
 
 export const VIEWPORTS = [

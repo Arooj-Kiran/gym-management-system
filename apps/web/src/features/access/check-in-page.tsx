@@ -10,6 +10,7 @@ import { EmptyState, ErrorState, ListSkeleton, Skeleton } from '../../components
 import { fullName, useCan } from '../../lib/auth';
 import { formatRelative } from '../../lib/format';
 import { ManualCheckInDialog } from '../attendance/manual-check-in-dialog';
+import { CheckInDesk } from './check-in-desk';
 import { DecisionBadge, SourceBadge } from './access-badges';
 import { useAccessAttempts, useAccessDevices, useAccessStream } from './access-api';
 import { useKioskResult, useLiveDecision } from './kiosk-hooks';
@@ -232,6 +233,7 @@ export function CheckInPage() {
           </Select>
         </div>
       )}
+      {canManual && <CheckInDesk />}
       {body}
       {canManual && <ManualCheckInDialog open={manualOpen} onOpenChange={setManualOpen} />}
     </>

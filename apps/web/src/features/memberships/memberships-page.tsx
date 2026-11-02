@@ -17,9 +17,10 @@ import { PageHeader } from '../../components/ui/page-header';
 import { Pagination } from '../../components/ui/pagination';
 import { SearchInput } from '../../components/ui/search-input';
 import { EmptyState, ErrorState, ListSkeleton } from '../../components/ui/states';
-import { fullName } from '../../lib/auth';
+import { fullName, useCan, useSession } from '../../lib/auth';
 import { cn } from '../../lib/cn';
-import { gymTodayIso } from '../../lib/format';
+import { formatMoney, gymTodayIso } from '../../lib/format';
+import { isOpenInvoice } from '../billing/billing-format';
 import { MemberAvatar } from '../members/member-avatar';
 import { membershipPeriod, membershipTiming } from './membership-format';
 import { MembershipStatusBadge } from './membership-status-badge';
@@ -89,6 +90,25 @@ function useMembershipFilters() {
   return { query, sort, expiring, update };
 }
 
+/** C1: the period's unpaid balance, under its status. */
+function BalanceDue({ membership }: { membership: MembershipDto }) {
+  const can = useCan();
+  const { gym } = useSession();
+  const invoice = membership.invoice;
+  if (!can('payments:read') || !invoice || !isOpenInvoice(invoice.status)) return null;
+  return (
+    <span
+      className={cn(
+        'block text-xs tabular-nums',
+        invoice.status === 'OVERDUE' ? 'text-danger-text' : 'text-warning-text',
+      )}
+    >
+      {formatMoney(invoice.balanceMinor, gym.currencyCode)}{' '}
+      {invoice.status === 'OVERDUE' ? 'overdue' : 'due'}
+    </span>
+  );
+}
+
 function MembershipRow({ membership, today }: { membership: MembershipDto; today: string }) {
   const { member } = membership;
   const timing = membershipTiming(membership, today);
@@ -107,8 +127,9 @@ function MembershipRow({ membership, today }: { membership: MembershipDto; today
             </span>
           </span>
         </span>
-        <span className="justify-self-end lg:hidden">
+        <span className="justify-self-end text-right lg:hidden">
           <MembershipStatusBadge status={membership.effectiveStatus} />
+          <BalanceDue membership={membership} />
         </span>
         <span className="col-span-2 flex flex-wrap items-center gap-x-3 gap-y-1 pl-11 text-13 text-fg-muted lg:contents">
           <span className="truncate text-fg-secondary lg:text-fg">{membership.planName}</span>
@@ -118,6 +139,7 @@ function MembershipRow({ membership, today }: { membership: MembershipDto; today
           </span>
           <span className="hidden lg:block">
             <MembershipStatusBadge status={membership.effectiveStatus} />
+            <BalanceDue membership={membership} />
           </span>
         </span>
         <ChevronRight

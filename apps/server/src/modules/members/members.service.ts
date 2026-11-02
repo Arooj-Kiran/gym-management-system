@@ -5,6 +5,8 @@ import {
   type MemberDto,
   type MemberMatch,
   type MemberSummaryDto,
+  type Paginated,
+  type TrainerSafeMemberDto,
   type checkDuplicateQuerySchema,
   type createMemberSchema,
   type memberListQuerySchema,
@@ -39,7 +41,7 @@ import {
 import { diffFields, recordAudit } from '../../lib/audit';
 import { gymToday } from '../../lib/dates';
 import { isUniqueViolation } from '../../lib/db-errors';
-import { conflict, notFound, validationFailed } from '../../lib/errors';
+import { conflict, forbidden, notFound, validationFailed } from '../../lib/errors';
 import { likePattern, pageOffset, paginated } from '../../lib/pagination';
 import { hashPassword } from '../../lib/passwords';
 import type { RequestContext } from '../../lib/request-context';
@@ -48,7 +50,9 @@ import { revokeUserSessions } from '../auth/session.service';
 import {
   currentEffectiveStatusSql,
   currentMembershipBriefSql,
+  qualified,
 } from '../memberships/current-membership';
+import { assignedMemberSql } from '../trainers/trainer-scope';
 import { assertCanReadMember, type MemberReadScope } from './members.policy';
 
 type CreateMember = z.output<typeof createMemberSchema>;
@@ -102,6 +106,20 @@ function toSummary(row: MemberWithMembership): MemberSummaryDto {
     archivedAt: row.archivedAt?.toISOString() ?? null,
     isDemo: row.isDemo,
     createdAt: row.createdAt.toISOString(),
+    currentMembership: row.currentMembership ?? null,
+  };
+}
+
+/** §5: what a trainer may see of an assigned member — no contact details, notes or billing. */
+export function toTrainerSafe(row: MemberWithMembership): TrainerSafeMemberDto {
+  return {
+    id: row.id,
+    memberCode: row.memberCode,
+    firstName: row.firstName,
+    lastName: row.lastName,
+    photoUrl: memberPhotoUrl(`/api/v1/members/${row.id}/photo`, row.profilePhotoKey),
+    accountStatus: row.accountStatus,
+    archivedAt: row.archivedAt?.toISOString() ?? null,
     currentMembership: row.currentMembership ?? null,
   };
 }
@@ -308,11 +326,17 @@ const DEFAULT_ORDER = {
   createdAt: 'desc',
 } as const;
 
-export async function listMembers(query: MemberListQuery, scope: MemberReadScope) {
-  // Trainers see assigned members only; none exist until Stage 6 adds assignments.
-  if (scope.kind === 'assigned') return paginated([], query.page, query.pageSize, 0);
+export async function listMembers(
+  query: MemberListQuery,
+  scope: MemberReadScope,
+): Promise<Paginated<MemberSummaryDto> | Paginated<TrainerSafeMemberDto>> {
+  const trainer = scope.kind === 'assigned';
+  // Billing is never part of a trainer's view (§5), so neither is filtering by it.
+  if (trainer && query.paymentStatus)
+    throw forbidden('Trainers cannot filter members by payments.');
 
   const filters: (SQL | undefined)[] = [];
+  if (trainer) filters.push(assignedMemberSql(members.id, scope.trainerUserId));
   if (query.view === 'current') filters.push(isNull(members.archivedAt));
   if (query.view === 'archived') filters.push(isNotNull(members.archivedAt));
   if (query.accountStatus) filters.push(eq(members.accountStatus, query.accountStatus));
@@ -329,16 +353,31 @@ export async function listMembers(query: MemberListQuery, scope: MemberReadScope
         : sql`${status} = ${query.membershipStatus}`,
     );
   }
+  if (query.paymentStatus) {
+    const memberId = qualified(members.id);
+    const open = sql`exists (select 1 from invoices i where i.member_id = ${memberId}
+      and i.status in ('PENDING', 'PARTIALLY_PAID', 'OVERDUE'))`;
+    const overdue = sql`exists (select 1 from invoices i where i.member_id = ${memberId}
+      and (i.status = 'OVERDUE' or (i.status = 'PENDING' and i.due_date < ${gymToday()}::date)))`;
+    filters.push(
+      query.paymentStatus === 'OUTSTANDING'
+        ? open
+        : query.paymentStatus === 'OVERDUE'
+          ? overdue
+          : sql`not ${open}`,
+    );
+  }
   if (query.q) {
     const pattern = likePattern(query.q);
     const digits = query.q.replace(/\D/g, '');
     filters.push(
       or(
         ilike(sql`${members.firstName} || ' ' || ${members.lastName}`, pattern),
-        ilike(sql`${members.email}::text`, pattern),
+        // Trainers never see contact details, so they cannot search by them either.
+        trainer ? undefined : ilike(sql`${members.email}::text`, pattern),
         ilike(members.memberCode, pattern),
         // "0300 123" finds +92300123…: match on digits, ignoring the national leading zero.
-        digits.length >= 3
+        !trainer && digits.length >= 3
           ? ilike(members.phoneE164, likePattern(digits.replace(/^0/, '')))
           : undefined,
       ),
@@ -358,12 +397,19 @@ export async function listMembers(query: MemberListQuery, scope: MemberReadScope
       .offset(pageOffset(query.page, query.pageSize)),
     db.select({ total: count() }).from(members).where(where),
   ]);
-  return paginated(rows.map(toSummary), query.page, query.pageSize, totals?.total ?? 0);
+  const total = totals?.total ?? 0;
+  return trainer
+    ? paginated(rows.map(toTrainerSafe), query.page, query.pageSize, total)
+    : paginated(rows.map(toSummary), query.page, query.pageSize, total);
 }
 
-export async function getMember(id: string, scope: MemberReadScope): Promise<MemberDto> {
-  assertCanReadMember(scope, id);
-  return toDto(await requireRow(db, id));
+export async function getMember(
+  id: string,
+  scope: MemberReadScope,
+): Promise<MemberDto | TrainerSafeMemberDto> {
+  await assertCanReadMember(scope, id);
+  const row = await requireRow(db, id);
+  return scope.kind === 'assigned' ? toTrainerSafe(row) : toDto(row);
 }
 
 // --- Writes -------------------------------------------------------------------------------

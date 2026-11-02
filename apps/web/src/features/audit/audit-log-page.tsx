@@ -35,6 +35,23 @@ const ENTITY_LABELS: Record<AuditEntityType, string> = {
   ACCESS_DEVICE: 'Access devices',
   BIOMETRIC_CONSENT: 'Biometric consent',
   BIOMETRIC_ENROLLMENT: 'Biometric enrollments',
+  INVOICE: 'Invoices',
+  PAYMENT: 'Payments',
+  REFUND: 'Refunds',
+  TRAINER: 'Trainers',
+  TRAINER_ASSIGNMENT: 'Trainer assignments',
+  TRAINER_TIME_OFF: 'Trainer time off',
+  STAFF_SHIFT: 'Staff shifts',
+  FITNESS_CLASS: 'Classes',
+  CLASS_SESSION: 'Class sessions',
+  CLASS_BOOKING: 'Class bookings',
+  APPOINTMENT: 'Appointments',
+  EXERCISE: 'Exercises',
+  WORKOUT_PLAN: 'Workout plans',
+  WORKOUT_ASSIGNMENT: 'Assigned workouts',
+  PROGRESS_ENTRY: 'Progress entries',
+  EQUIPMENT: 'Equipment',
+  MAINTENANCE_RECORD: 'Maintenance records',
 };
 
 function useAuditFilters() {

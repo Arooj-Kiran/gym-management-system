@@ -14,12 +14,13 @@ import { useEffect, useState } from 'react';
 import { api } from '../../api/client';
 import { queryKeys } from '../../api/query-keys';
 
-export function useMemberList(query: MemberListQuery) {
+export function useMemberList(query: MemberListQuery, enabled = true) {
   return useQuery({
     queryKey: queryKeys.members.list(query),
     queryFn: ({ signal }) =>
       api.get<Paginated<MemberSummaryDto>>('/members', { query: { ...query }, signal }),
     placeholderData: keepPreviousData,
+    enabled,
   });
 }
 

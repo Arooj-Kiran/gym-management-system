@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { check, integer, pgTable, varchar } from 'drizzle-orm/pg-core';
+import { boolean, check, integer, pgTable, varchar } from 'drizzle-orm/pg-core';
 import { primaryId, timestamps } from './columns';
 
 /** Exactly one row (enforced by a unique expression index in the migrations). */
@@ -13,6 +13,10 @@ export const gymSettings = pgTable(
     invoiceDueDays: integer('invoice_due_days').notNull().default(0),
     biometricRetentionDays: integer('biometric_retention_days').notNull().default(30),
     classBookingCutoffMinutes: integer('class_booking_cutoff_minutes').notNull().default(60),
+    /** C1 (PLAN §3.3): off by default; only the Admin may change it. */
+    requireFullPaymentBeforeActivation: boolean('require_full_payment_before_activation')
+      .notNull()
+      .default(false),
     ...timestamps(),
   },
   (t) => [
